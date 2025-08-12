@@ -261,7 +261,6 @@ export class CombatantPortrait {
 
     async getData() {
         // Format information about each combatant in the encounter
-        let hasDecimals = false;
         const combatant = this.combatant;
         const hideDefeated = game.settings.get(MODULE_ID, "hideDefeated");
         if (hideDefeated && combatant.isDefeated) return null;
@@ -329,7 +328,6 @@ export class CombatantPortrait {
             barsOrder: null,
             displayDescriptions: displayDescriptions,
         };
-        if (turn.initiativeData.value !== null && !Number.isInteger(turn.initiativeData.value)) hasDecimals = true;
         turn.css = [turn.active ? "active" : "", turn.hidden ? "hidden" : "", turn.defeated ? "defeated" : ""].join(" ").trim();
 
         // Actor and Token status effects
@@ -350,14 +348,6 @@ export class CombatantPortrait {
 
         turn.hasEffects = turn.effects.size > 0;
         turn.barsOrder = this.getBarsOrder(turn.hasEffects, resource, resource2);
-        // Format initiative numeric precision
-        const precision = CONFIG.Combat.initiative.decimals;
-        if (turn.hasRolled && typeof turn.initiative == "number") turn.initiative = turn.initiative.toFixed(hasDecimals ? precision : 0);
-        if (turn.hasRolled && typeof turn.initiativeData.value == "number") turn.initiativeData.value = turn.initiativeData.value.toFixed(hasDecimals ? precision : 0);
-        if (!game.user.isGM && !combatant.actor?.isOwner && game.settings.get(MODULE_ID, "hideEnemyInitiative")) {            
-            turn.initiative = "?";
-            turn.initiativeData.value = "?";
-        }
         return turn;
     }
 
