@@ -77,41 +77,6 @@ export function registerSettings() {
         },
     });
 
-    game.settings.register(MODULE_ID, "carouselStyle", {
-        name: "tides-of-battle.settings.carouselStyle.name",
-        hint: "tides-of-battle.settings.carouselStyle.hint",
-        scope: "world",
-        config: true,
-        type: Number,
-        choices: {
-            0: "tides-of-battle.settings.carouselStyle.choices.centerCarousel",
-            1: "tides-of-battle.settings.carouselStyle.choices.leftCarousel",
-            2: "tides-of-battle.settings.carouselStyle.choices.basic",
-        },
-        default: 0,
-        onChange: () => ui.combatDock?.refresh(),
-    });
-
-    game.settings.register(MODULE_ID, "direction", {
-        name: "tides-of-battle.settings.direction.name",
-        hint: "tides-of-battle.settings.direction.hint",
-        scope: "world",
-        config: true,
-        type: String,
-        choices: {
-            row: "tides-of-battle.settings.direction.choices.row",
-            column: "tides-of-battle.settings.direction.choices.column",
-        },
-        default: "row",
-        onChange: () => {
-            setDirection();
-            setOverflowStyle();
-            setFlex();
-            ui.combatDock?.autosize();
-            ui.combatDock?.refresh();
-        },
-    });
-
     game.settings.register(MODULE_ID, "alignment", {
         name: "tides-of-battle.settings.alignment.name",
         hint: "tides-of-battle.settings.alignment.hint",
@@ -472,10 +437,7 @@ export function registerHotkeys() {
 }
 
 function setAllSettings() {
-    setDirection();
-    setOverflowStyle();
     setAlignment();
-    setFlex();
     setPortraitAspect();
     setRoundness();
     setAttributeColor();
@@ -496,7 +458,8 @@ function setPortraitAspect() {
 
 function setAlignment() {
     const alignment = game.settings.get(MODULE_ID, "alignment");
-    document.documentElement.style.setProperty("--carousel-alignment", alignment);
+    // For simple horizontal bar, we can keep center alignment
+    document.documentElement.style.setProperty("--combat-bar-alignment", alignment);
     ui.combatDock?.setControlsOrder();
 }
 
@@ -539,40 +502,12 @@ function setAttributeColor() {
 
 function setTooltipColor() {
     const tooltipColor = game.settings.get(MODULE_ID, "tooltipColor") || "#888888";
-    document.documentElement.style.setProperty("--carousel-tooltip-color", tooltipColor);
+    document.documentElement.style.setProperty("--combat-tooltip-color", tooltipColor);
 
     const color = Color.from(tooltipColor);
     const darkened = color.mix(Color.from("#000"), 0.65);
 
-    document.documentElement.style.setProperty("--carousel-tooltip-bg-color", darkened.toString());
-}
-
-function setOverflowStyle() {
-    let overflowStyle = game.settings.get(MODULE_ID, "overflowStyle");
-    if (overflowStyle === "autofit") overflowStyle = "hidden";
-    if (overflowStyle === "scroll") {
-        const direction = game.settings.get(MODULE_ID, "direction");
-        if (direction === "row") overflowStyle = "visible hidden";
-        else overflowStyle = "hidden visible";
-    }
-    document.documentElement.style.setProperty("--carousel-overflow", overflowStyle);
-}
-
-function setDirection() {
-    const direction = game.settings.get(MODULE_ID, "direction");
-    document.documentElement.style.setProperty("--carousel-direction", direction);
-    document.documentElement.style.setProperty("--combatant-portrait-margin", direction === "row" ? "0 calc(var(--combatant-portrait-size) * 0.1)" : "0");
-    ui.combatDock?.setControlsOrder();
-}
-
-function setFlex() {
-    const alignment = game.settings.get(MODULE_ID, "alignment");
-    const direction = game.settings.get(MODULE_ID, "direction");
-    let flexD = "flex-start";
-    if (direction == "column" && alignment == "right") flexD = "flex-end";
-    if (direction == "column" && alignment == "center") flexD = "center";
-
-    document.documentElement.style.setProperty("--carousel-align-items", flexD);
+    document.documentElement.style.setProperty("--combat-tooltip-bg-color", darkened.toString());
 }
 
 function l(key) {

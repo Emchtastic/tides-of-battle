@@ -34,20 +34,8 @@ export class CombatDock extends Application {
         return Array.from(this.combat.combatants.contents.sort(this.combat._sortCombatants));
     }
 
-    get trueCarousel() {
-        return game.settings.get(MODULE_ID, "carouselStyle") < 2;
-    }
-
-    get leftAligned() {
-        return game.settings.get(MODULE_ID, "carouselStyle") == 1;
-    }
-
     get autoFit() {
         return game.settings.get(MODULE_ID, "overflowStyle") == "autofit";
-    }
-
-    get isVertical() {
-        return game.settings.get(MODULE_ID, "direction") == "column";
     }
 
     setHooks() {
@@ -112,7 +100,6 @@ export class CombatDock extends Application {
         this.portraits.forEach((p) => combatantsContainer.appendChild(p.element));
         const isEven = this.portraits.length % 2 === 0;
         this.element[0].classList.toggle("even", isEven);
-        this.setupSeparator();
         this.updateOrder();
         this.autosize();
         if (!this._combatTrackerRefreshed) {
@@ -129,66 +116,22 @@ export class CombatDock extends Application {
         }
     }
 
-    setupSeparator(){
-        const combatantsContainer = this.element[0].querySelector("#combatants");
-        combatantsContainer.querySelectorAll(".separator").forEach(s => s.remove());
-        const turn = this.combat.turn + 1;
-        const combatantsCount = this.sortedCombatants.length;
-        const afterHalf = turn > Math.floor(combatantsCount / 2) || this.leftAligned ? 1 : 0;
-        const separator = document.createElement("div");
-        separator.classList.add("separator");
-        const line = document.createElement("div");
-        line.classList.add("line");
-        separator.appendChild(line);
-        const round = document.createElement("div");
-        round.classList.add("round", this.isVertical ? "flexrow" : "flexcol");
-        round.innerHTML = this.isVertical ? `<i class="fal fa-angle-down"></i>${this.combat.round + afterHalf}` : `<i class="fal fa-angle-right"></i>${this.combat.round + afterHalf}`;
-        separator.appendChild(round);
-        combatantsContainer.appendChild(separator);
-    }
-
-    playIntroAnimation(easing = "cubic-bezier(0.22, 1, 0.36, 1)") {
+    playIntroAnimation() {
         Hooks.callAll("combatDock:playIntroAnimation", this);
 
-        const duration = CONFIG.combatTrackerDock.INTRO_ANIMATION_DURATION;
-        const delayMultiplier = CONFIG.combatTrackerDock.INTRO_ANIMATION_DELAY;
-
-        const isVertical = this.isVertical;
-        const alignment = game.settings.get(MODULE_ID, "alignment");
-
-        const transformAxis = isVertical ? "X" : "Y";
-        const transformDirection = isVertical && alignment == "right" ? "" : "-";
-
-        const playSlideInAnimation = (el, delay = 0) => {
-            el.style.transform = `translate${transformAxis}(${transformDirection}150%)`;
-            const anim = el.animate([{ transform: `translate${transformAxis}(${transformDirection}150%)` }, { transform: `translate${transformAxis}(0)` }], {
-                duration: duration,
-                easing: easing,
-                //fill: "forwards",
-                delay: delay,
-            });
-
-            anim.finished.then(() => {
-                el.style.transform = "";
-                Hooks.callAll("combatDock:playIntroAnimation:finished", this, el);
-            });
-        };
-        let totalAnimationTime = 0;
+        // Simple fade-in animation for portraits
         Array.from(this.element[0].querySelector("#combatants").children).forEach((el, index) => {
-            const order = this.trueCarousel ? parseInt(el.style.order) / 100 : index;
-            const delay = order * duration * delayMultiplier;
-            totalAnimationTime = Math.max(totalAnimationTime, delay + duration);
-            playSlideInAnimation(el, delay);
+            el.style.opacity = "0";
+            setTimeout(() => {
+                el.style.transition = "opacity 0.3s ease-in-out";
+                el.style.opacity = "1";
+            }, index * 50);
         });
 
         setTimeout(() => {
-            if (isVertical) this.centerCurrentCombatant();
-        }, totalAnimationTime + duration);
-
-        setTimeout(() => {
             this.element[0].classList.remove("hidden");
-            if (!isVertical) this.centerCurrentCombatant();
-        }, 10);
+            this.centerCurrentCombatant();
+        }, 100);
     }
 
     autosize() {
@@ -198,21 +141,17 @@ export class CombatDock extends Application {
             max: max,
             aspect: aspect,
         };
-        const verticalSize = max * aspect;
-        if (!this.autoFit) return document.documentElement.style.setProperty("--combatant-portrait-size", max + "px");
-        if (this.isVertical) {
-            const maxSpace = document.getElementById("ui-left-column-2").getBoundingClientRect().height * 0.9 - document.getElementById("scene-navigation-active").getBoundingClientRect().height;
-            const combatantCount = this.sortedCombatants.length;
-            const portraitSize = Math.min(verticalSize, Math.floor(maxSpace / combatantCount)) / aspect;
-
-            document.documentElement.style.setProperty("--combatant-portrait-size", portraitSize + "px");
-        } else {
-            const maxSpace = document.getElementById("ui-top").getBoundingClientRect().width * 0.9;
-            const combatantCount = this.sortedCombatants.length;
-            const portraitSize = Math.min(max, Math.floor(maxSpace / combatantCount));
-
-            document.documentElement.style.setProperty("--combatant-portrait-size", portraitSize / 1.2 + "px");
+        
+        if (!this.autoFit) {
+            return document.documentElement.style.setProperty("--combatant-portrait-size", max + "px");
         }
+        
+        // For horizontal layout, auto-size based on available width
+        const maxSpace = document.getElementById("ui-top").getBoundingClientRect().width * 0.9;
+        const combatantCount = this.sortedCombatants.length;
+        const portraitSize = Math.min(max, Math.floor(maxSpace / combatantCount));
+        
+        document.documentElement.style.setProperty("--combatant-portrait-size", portraitSize / 1.2 + "px");
     }
 
     updateCombatant(combatant, updates = {}) {
@@ -229,43 +168,13 @@ export class CombatDock extends Application {
     }
 
     updateOrder() {
-        this.setupSeparator();
-        const separator = this.element[0].querySelector(".separator");
-        const isTrueCarousel = this.trueCarousel;
-        separator.style.display = isTrueCarousel ? "" : "none";
-        if (this.sortedCombatants.filter((c) => c?.visible)?.length === 0) {
-            separator.style.display = "none";
-        }
-        separator.classList.remove("vertical", "horizontal");
-        separator.classList.add(this.isVertical ? "vertical" : "horizontal");
-
         const combatants = this.sortedCombatants;
-
-
-        if (!this.trueCarousel) return this.portraits.forEach((p) => p.element.style.setProperty("order", combatants.indexOf(p.combatant)));
-
-        const isLeftAligned = this.leftAligned;
-
-        //order combatants so that the current combatant is at the center
-        const currentCombatant = this.combat.combatant;
-        const currentCombatantIndex = combatants.findIndex((c) => c === currentCombatant) + combatants.length;
-        const tempCombatantList = [...combatants, ...combatants, ...combatants];
-        const halfLength = isLeftAligned ? combatants.length : Math.floor(combatants.length / 2);
-        const orderedCombatants = tempCombatantList.slice(currentCombatantIndex - halfLength, currentCombatantIndex + halfLength + 1);
-
-        const lastCombatant = this.sortedCombatants[this.sortedCombatants.length - 1];
-
+        
+        // Simple order based on initiative order
         this.portraits.forEach((p) => {
-            const combatant = orderedCombatants.find((c) => c === p.combatant);
-            const index = orderedCombatants.findIndex((c) => c === combatant);
-            p.element.style.setProperty("order", index * 100);
+            const order = combatants.indexOf(p.combatant);
+            p.element.style.setProperty("order", order);
         });
-
-        //get last combatant's order
-        const lastCombatantOrder = this.portraits.find((p) => p.combatant === lastCombatant)?.element?.style?.order ?? 999999;
-        //set separator's order to last combatant's order + 1
-
-        separator.style.setProperty("order", parseInt(lastCombatantOrder) + 1);
     }
 
     updateStartEndButtons() {
@@ -277,9 +186,7 @@ export class CombatDock extends Application {
     }
 
     appendHtml(){
-        if(!this.isVertical) return document.querySelector("#ui-top").prepend(this.element[0]);
-        if(game.settings.get(MODULE_ID, "alignment") == "left") return document.querySelector("#ui-left-column-2").prepend(this.element[0]);
-        return document.querySelector("#ui-right").prepend(this.element[0]);
+        return document.querySelector("#ui-top").prepend(this.element[0]);
     }
 
     activateListeners(html) {
@@ -429,58 +336,27 @@ export class CombatDock extends Application {
     }
 
     centerCurrentCombatant() {
-        const carouselStyle = game.settings.get(MODULE_ID, "carouselStyle");
-        const combatantsEl = this.element[0].querySelector("#combatants");
-        if (this.trueCarousel) {
-            if (carouselStyle == 2) return;
-
-            if (carouselStyle == 1)
-                return combatantsEl.scrollTo({
-                    top: 0,
-                    left: 0,
-                    behavior: "smooth",
-                });
-            combatantsEl.scrollTo({
-                top: combatantsEl.scrollHeight / 2 - combatantsEl.offsetHeight / 2 + this._currentPortraitSize.max * this._currentPortraitSize.aspect,
-                left: combatantsEl.scrollWidth / 2 - combatantsEl.offsetWidth / 2 + this._currentPortraitSize.max,
-                behavior: "smooth",
-            });
-        } else {
-            const current = this.portraits.find((p) => p.combatant === this.combat.combatants.get(this.combat?.current?.combatantId));
-            if (!current) return;
-            const el = current.element;
-            el.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-                inline: "center",
-            });
-        }
+        const current = this.portraits.find((p) => p.combatant === this.combat.combatants.get(this.combat?.current?.combatantId));
+        if (!current) return;
+        const el = current.element;
+        el.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "center",
+        });
     }
 
     setControlsOrder() {
+        // Simple horizontal layout - no special ordering needed
         const uiLeft = this.element[0].querySelector(".buttons-container.left");
         const uiRight = this.element[0].querySelector(".buttons-container.right");
+        const combatants = this.element[0].querySelector("#combatants");
+        
+        uiLeft.style.order = "";
+        uiRight.style.order = "";
+        combatants.style.order = "";
         uiLeft.style.marginRight = "";
         uiRight.style.marginLeft = "";
-        const combatants = this.element[0].querySelector("#combatants");
-        const alignment = game.settings.get(MODULE_ID, "alignment");
-        if (this.isVertical && alignment !== "center") {
-            if (alignment == "right") {
-                uiLeft.style.order = 0;
-                uiLeft.style.marginRight = "1rem";
-                uiRight.style.order = 1;
-                combatants.style.order = 2;
-            } else {
-                uiLeft.style.order = 1;
-                uiRight.style.order = 2;
-                uiRight.style.marginLeft = "1rem";
-                combatants.style.order = 0;
-            }
-        } else {
-            uiLeft.style.order = "";
-            uiRight.style.order = "";
-            combatants.style.order = "";
-        }
     }
 
     _onDeleteCombat(combat) {
