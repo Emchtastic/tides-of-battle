@@ -117,8 +117,22 @@ export class CombatDock extends Application {
     }
 
     getCombatantPhase(combatant) {
-        // For now, all combatants go to FAST phase - we'll add logic later
-        return combatant.getFlag(MODULE_ID, "phase") || PHASES.FAST;
+        // Check if combatant already has a phase flag set
+        const existingPhase = combatant.getFlag(MODULE_ID, "phase");
+        if (existingPhase) return existingPhase;
+        
+        // Fallback: assign phase based on token disposition
+        const disposition = combatant.token?.disposition;
+        if (disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE) {
+            return PHASES.ENEMY;
+        } else if (disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY) {
+            return PHASES.FAST;
+        } else if (disposition === CONST.TOKEN_DISPOSITIONS.NEUTRAL) {
+            return PHASES.SLOW;
+        }
+        
+        // Ultimate fallback if no disposition is set
+        return PHASES.FAST;
     }
 
     async setCombatantPhase(combatant, phase) {

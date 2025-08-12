@@ -29,11 +29,23 @@ Hooks.on('createCombat', (combat) => {
     }
 });
 
-// Set default phase for new combatants
+// Set default phase for new combatants based on disposition
 Hooks.on('createCombatant', async (combatant) => {
     if (!combatant.getFlag(MODULE_ID, "phase")) {
-        await combatant.setFlag(MODULE_ID, "phase", "fast");
-        console.log(`Assigned ${combatant.name} to fast phase`);
+        let defaultPhase = "fast"; // Default fallback
+        
+        // Assign phase based on token disposition
+        const disposition = combatant.token?.disposition;
+        if (disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE) {
+            defaultPhase = "enemy";
+        } else if (disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY) {
+            defaultPhase = "fast";
+        } else if (disposition === CONST.TOKEN_DISPOSITIONS.NEUTRAL) {
+            defaultPhase = "fast";
+        }
+        
+        await combatant.setFlag(MODULE_ID, "phase", defaultPhase);
+        console.log(`Assigned ${combatant.name} (${disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE ? 'Hostile' : disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY ? 'Friendly' : disposition === CONST.TOKEN_DISPOSITIONS.NEUTRAL ? 'Neutral' : 'Unknown'}) to ${defaultPhase} phase`);
     }
 });
 
