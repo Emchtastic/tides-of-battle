@@ -33,6 +33,39 @@ Hooks.on('createCombat', (combat) => {
     }
 });
 
+// Additional hooks for robustness
+Hooks.on('updateCombat', (combat, updateData) => {
+    // If this combat just became the active one
+    if (game.combat === combat && !ui.combatDock) {
+        console.log("updateCombat: Combat became active, ensuring dock exists");
+        ensureCombatDockExists();
+    }
+});
+
+// Hook for when combat starts
+Hooks.on('combatStart', (combat) => {
+    console.log("combatStart hook triggered for combat:", combat.id);
+    ensureCombatDockExists();
+});
+
+// Hook for when user switches between scenes/combats
+Hooks.on('canvasReady', () => {
+    // Small delay to ensure everything is loaded
+    setTimeout(() => {
+        ensureCombatDockExists();
+    }, 100);
+});
+
+// Robust function to ensure combat dock exists when needed
+function ensureCombatDockExists() {
+    if (game.combat && !ui.combatDock) {
+        console.log("ensureCombatDockExists: Creating missing combat dock for active combat:", game.combat.id);
+        new CONFIG.combatTrackerDock.CombatDock(game.combat).render(true);
+        return true;
+    }
+    return false;
+}
+
 Hooks.on('ready', () => {
     // Socket handler for player phase choices - only set up when game is ready
     game.socket.on("module.tides-of-battle", async (data) => {
@@ -59,9 +92,17 @@ Hooks.on('ready', () => {
         }
     });
 
-    if(game.combat?.active && !ui.combatDock && game.settings.get("core", "noCanvas")) {
-        new CONFIG.combatTrackerDock.CombatDock(game.combat).render(true);
-    }
+    // Ensure combat dock exists if there's an active combat
+    ensureCombatDockExists();
+    
+    // Additional safety net - periodic check for missing combat dock
+    setInterval(() => {
+        if (game.combat && !ui.combatDock) {
+            console.log("Periodic check: Found active combat without dock, creating one");
+            ensureCombatDockExists();
+        }
+    }, 5000); // Check every 5 seconds
+    
     showWelcome();
 });
 
