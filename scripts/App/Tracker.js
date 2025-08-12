@@ -83,8 +83,11 @@ export class CombatDock extends Application {
             roundDisplay.textContent = `Round ${this.currentRound}`;
         }
         
-        // Refresh combatants to show only those in the current phase
-        this.setupCombatants();
+        // Only refresh combatants if combat has started
+        const combatStarted = this.combat?.getFlag(MODULE_ID, "combatStarted") ?? false;
+        if (combatStarted) {
+            this.setupCombatants();
+        }
         
         console.log("Phase display updated to:", this.getPhaseDisplayName(this.currentPhase), "Round", this.currentRound);
         console.log("Combatants in current phase:", this.sortedCombatants.length);
@@ -278,9 +281,17 @@ export class CombatDock extends Application {
     }
 
     setupCombatants() {
+        // Only set up combatants if combat has started and the combatants container exists
+        const combatStarted = this.combat?.getFlag(MODULE_ID, "combatStarted") ?? false;
+        const combatantsContainer = this.element[0]?.querySelector("#combatants");
+        
+        if (!combatStarted || !combatantsContainer) {
+            console.log("Combat not started or combatants container not found, skipping setup");
+            return;
+        }
+        
         this.portraits = [];
         this.sortedCombatants.forEach((combatant) => this.portraits.push(new CONFIG.combatTrackerDock.CombatantPortrait(combatant)));
-        const combatantsContainer = this.element[0].querySelector("#combatants");
         combatantsContainer.innerHTML = "";
         this.portraits.forEach((p) => combatantsContainer.appendChild(p.element));
         const isEven = this.portraits.length % 2 === 0;
@@ -360,10 +371,17 @@ export class CombatDock extends Application {
 
     updateStartEndButtons() {
         if(!this.element[0]) return;
+        
         const startButton = this.element[0].querySelector(`[data-action="start-combat"]`);
         const endButton = this.element[0].querySelector(`[data-action="end-combat"]`);
-        startButton.style.display = this.combat.started ? "none" : "";
-        endButton.style.display = this.combat.started ? "" : "none";
+        
+        // Only update if buttons exist (they don't exist in pre-combat state)
+        if (startButton) {
+            startButton.style.display = this.combat.started ? "none" : "";
+        }
+        if (endButton) {
+            endButton.style.display = this.combat.started ? "" : "none";
+        }
     }
 
     appendHtml(){
@@ -373,7 +391,10 @@ export class CombatDock extends Application {
     activateListeners(html) {
         if (this._closed) return this.close();
         super.activateListeners(html);
+        
+        // Only set up combatants if combat has started
         this.setupCombatants();
+        
         this.appendHtml();
         // Ensure phase display is properly initialized
         this.updatePhaseDisplay();
