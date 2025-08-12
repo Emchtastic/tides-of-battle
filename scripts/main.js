@@ -61,7 +61,23 @@ Hooks.on('updateCombat', (combat, updates) => {
     if(updates.active === true && !combat.getFlag(MODULE_ID, "currentPhase")) {
         combat.setFlag(MODULE_ID, "currentPhase", "fast");
     }
+    
+    // Clear rotating dice when combat ends
+    if(updates.active === false) {
+        clearAllRotatingDice();
+    }
 });
+
+// Helper function to clear all rotating dice from tokens
+function clearAllRotatingDice() {
+    canvas.tokens.placeables.forEach(token => {
+        const existingDie = token.children.find(child => child.name === "activeIndicator");
+        if (existingDie) {
+            token.removeChild(existingDie);
+        }
+    });
+    console.log("Cleared all rotating dice indicators");
+}
 
 Hooks.on('canvasReady', () => {
     Hooks.once("renderCombatTracker", (tab) => {

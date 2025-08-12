@@ -180,67 +180,37 @@ export class CombatantPortrait {
         if (this._actionClickHandler) {
             this.element.removeEventListener("click", this._actionClickHandler);
         }
-        if (this._mouseDownHandler) {
-            this.element.removeEventListener("mousedown", this._mouseDownHandler);
-        }
-        if (this._mouseUpHandler) {
-            this.element.removeEventListener("mouseup", this._mouseUpHandler);
-        }
-        if (this._mouseLeavehHandler) {
-            this.element.removeEventListener("mouseleave", this._mouseLeavehHandler);
+        if (this._contextMenuHandler) {
+            this.element.removeEventListener("contextmenu", this._contextMenuHandler);
         }
         
         // Add GM-only event handlers for action tracking and active combatant selection
         if (game.user.isGM) {
-            let pressTimer = null;
-            let isLongPress = false;
-            
-            this._mouseDownHandler = (event) => {
-                // Don't trigger on action button clicks
-                if (event.target.classList.contains("action") || event.target.closest(".action")) return;
-                
-                event.preventDefault();
-                isLongPress = false;
-                
-                // Start press timer for long press detection (2 seconds)
-                pressTimer = setTimeout(() => {
-                    isLongPress = true;
-                    this.setAsActiveCombatant();
-                }, 2000);
-            };
-            
-            this._mouseUpHandler = async (event) => {
+            // Left click for action tracking (gray out)
+            this._actionClickHandler = async (event) => {
                 // Don't trigger on action button clicks
                 if (event.target.classList.contains("action") || event.target.closest(".action")) return;
                 
                 event.stopPropagation();
-                
-                // Clear the press timer
-                if (pressTimer) {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                }
-                
-                // If it wasn't a long press, handle as regular click (action tracking)
-                if (!isLongPress) {
-                    console.log("Portrait clicked for combatant:", this.combatant.name);
-                    const currentFlag = this.combatant.getFlag(MODULE_ID, "actionTaken") || false;
-                    console.log("Current action flag:", currentFlag, "Setting to:", !currentFlag);
-                    await this.combatant.setFlag(MODULE_ID, "actionTaken", !currentFlag);
-                }
+                console.log("Portrait clicked for combatant:", this.combatant.name);
+                const currentFlag = this.combatant.getFlag(MODULE_ID, "actionTaken") || false;
+                console.log("Current action flag:", currentFlag, "Setting to:", !currentFlag);
+                await this.combatant.setFlag(MODULE_ID, "actionTaken", !currentFlag);
             };
             
-            this._mouseLeavehHandler = () => {
-                // Cancel long press if mouse leaves the element
-                if (pressTimer) {
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
-                }
+            // Right click for active combatant selection
+            this._contextMenuHandler = async (event) => {
+                // Don't trigger on action button clicks
+                if (event.target.classList.contains("action") || event.target.closest(".action")) return;
+                
+                event.preventDefault();
+                event.stopPropagation();
+                console.log("Right-click detected - setting as active combatant:", this.combatant.name);
+                await this.setAsActiveCombatant();
             };
             
-            this.element.addEventListener("mousedown", this._mouseDownHandler);
-            this.element.addEventListener("mouseup", this._mouseUpHandler);
-            this.element.addEventListener("mouseleave", this._mouseLeavehHandler);
+            this.element.addEventListener("click", this._actionClickHandler);
+            this.element.addEventListener("contextmenu", this._contextMenuHandler);
         }
         
         this.element.querySelectorAll(".action").forEach((action) => {
@@ -292,16 +262,26 @@ export class CombatantPortrait {
     }
 
     async setAsActiveCombatant() {
-        console.log("Long press detected - setting as active combatant:", this.combatant.name);
+        console.log("Right-click detected - setting as active combatant:", this.combatant.name);
         
         // Clear any existing active combatant in this combat
         const currentActive = this.combat.getFlag(MODULE_ID, "activeCombatant");
         if (currentActive) {
             console.log("Clearing previous active combatant");
+            // Clear the rotating die from the previous token
+            const previousCombatant = this.combat.combatants.get(currentActive);
+            if (previousCombatant?.token?.object) {
+                this.clearRotatingDie(previousCombatant.token.object);
+            }
         }
         
         // Set this combatant as the active one
         await this.combat.setFlag(MODULE_ID, "activeCombatant", this.combatant.id);
+        
+        // Add rotating die animation to the token on the map
+        if (this.combatant.token?.object) {
+            this.addRotatingDie(this.combatant.token.object);
+        }
         
         // Refresh all portraits to update visual states
         if (ui.combatDock) {
@@ -309,7 +289,50 @@ export class CombatantPortrait {
         }
         
         // Visual feedback
-        ui.notifications.info(`${this.combatant.name} is now the active combatant`);
+        ui.notifications.info(`${this.combatant.name} is now acting`);
+    }
+
+    addRotatingDie(tokenObject) {
+        // Remove any existing die first
+        this.clearRotatingDie(tokenObject);
+        
+        // Create rotating die effect similar to Foundry's turn indicator
+        const die = new PIXI.Sprite(PIXI.Texture.from("icons/dice/d20black.svg"));
+        die.name = "activeIndicator";
+        die.anchor.set(0.5);
+        
+        // Position behind the token
+        die.x = tokenObject.w / 2;
+        die.y = tokenObject.h / 2;
+        die.width = tokenObject.w * 0.6;
+        die.height = tokenObject.h * 0.6;
+        die.alpha = 0.8;
+        die.zIndex = -1;
+        
+        // Add to token
+        tokenObject.addChild(die);
+        
+        // Create rotation animation
+        const ticker = (delta) => {
+            if (die.parent) {
+                die.rotation += 0.02 * delta;
+            } else {
+                // Remove ticker if die is no longer in scene
+                canvas.app.ticker.remove(ticker);
+            }
+        };
+        
+        canvas.app.ticker.add(ticker);
+        console.log("Added rotating die indicator to", this.combatant.name);
+    }
+
+    clearRotatingDie(tokenObject) {
+        // Remove existing rotating die if present
+        const existingDie = tokenObject.children.find(child => child.name === "activeIndicator");
+        if (existingDie) {
+            tokenObject.removeChild(existingDie);
+            console.log("Removed rotating die indicator");
+        }
     }
 
     get isActiveCombatant() {
