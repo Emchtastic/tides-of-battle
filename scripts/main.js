@@ -23,6 +23,31 @@ Hooks.once('init', function () {
 
 Hooks.once('setup', registerSettings);
 
+// Socket handler for player phase choices
+game.socket.on("module.tides-of-battle", async (data) => {
+    if (!game.user.isGM) return; // Only GM should handle these messages
+    
+    if (data.type === "setPlayerPhase") {
+        try {
+            const combat = game.combats.get(data.combatId);
+            const combatant = combat?.combatants.get(data.combatantId);
+            
+            if (combatant) {
+                await combatant.setFlag(MODULE_ID, "phase", data.phase);
+                await combatant.setFlag(MODULE_ID, "playerSelectedPhase", true);
+                console.log(`GM processed phase choice: ${combatant.name} -> ${data.phase} (requested by user ${data.userId})`);
+                
+                // Refresh the combat dock if it exists
+                if (ui.combatDock) {
+                    ui.combatDock.setupCombatants();
+                }
+            }
+        } catch (error) {
+            console.error("Error processing player phase choice:", error);
+        }
+    }
+});
+
 Hooks.on('createCombat', (combat) => {
     if (game.combat === combat) {
         new CONFIG.combatTrackerDock.CombatDock(combat).render(true);
@@ -34,25 +59,33 @@ Hooks.on('createCombatant', async (combatant) => {
     if (!combatant.getFlag(MODULE_ID, "phase")) {
         let defaultPhase = "fast"; // Default fallback
         
-        // Check if this is a player character that the current user owns
+        // Check if this is a player character that the current user specifically owns
         const isPlayerCharacter = combatant.actor?.hasPlayerOwner;
-        const isOwnedByCurrentUser = combatant.actor?.isOwner;
+        const isSpecificallyOwnedByCurrentUser = combatant.actor?.ownership?.[game.user.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
         const disposition = combatant.token?.disposition;
         
         console.log(`Processing new combatant: ${combatant.name}`);
         console.log(`- Is player character: ${isPlayerCharacter}`);
-        console.log(`- Is owned by current user: ${isOwnedByCurrentUser}`);
+        console.log(`- Is specifically owned by current user (${game.user.name}): ${isSpecificallyOwnedByCurrentUser}`);
+        console.log(`- Current user is GM: ${game.user.isGM}`);
         console.log(`- Disposition: ${disposition}`);
         
-        if (isPlayerCharacter && isOwnedByCurrentUser) {
-            // This is a player character owned by the current user - prompt for phase choice
+        if (isPlayerCharacter && isSpecificallyOwnedByCurrentUser && !game.user.isGM) {
+            // This is a player character owned by the current user (not GM) - prompt for phase choice
             console.log(`Prompting ${game.user.name} for phase choice for ${combatant.name}`);
             
             try {
                 const phaseChoice = await promptPhaseSelection(combatant);
                 if (phaseChoice) {
-                    await combatant.setFlag(MODULE_ID, "phase", phaseChoice);
-                    await combatant.setFlag(MODULE_ID, "playerSelectedPhase", true);
+                    // Player sends choice to GM via socket since they can't directly update combatant flags
+                    game.socket.emit("module.tides-of-battle", {
+                        type: "setPlayerPhase",
+                        combatantId: combatant.id,
+                        combatId: combatant.combat.id,
+                        phase: phaseChoice,
+                        userId: game.user.id
+                    });
+                    
                     console.log(`Player ${game.user.name} selected ${phaseChoice} phase for ${combatant.name}`);
                     
                     // Show feedback to the player
