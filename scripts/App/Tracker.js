@@ -212,13 +212,69 @@ export class CombatDock extends Application {
 
     getData() {
         const scroll = game.settings.get(MODULE_ID, "overflowStyle") === "scroll";
+        const combatStarted = this.combat?.getFlag(MODULE_ID, "combatStarted") ?? false;
+        const pendingPlayers = this.getPendingPlayers();
+        
         return {
             isGM: game.user.isGM,
             scroll,
+            combatStarted,
+            pendingPlayers,
             currentPhase: this.currentPhase,
             phaseDisplayName: this.getPhaseDisplayName(this.currentPhase),
             currentRound: this.currentRound,
         };
+    }
+
+    async beginCombat() {
+        if (!game.user.isGM) return;
+        
+        const pendingPlayers = this.getPendingPlayers();
+        
+        if (pendingPlayers.length > 0) {
+            const playerList = pendingPlayers.join(", ");
+            const message = pendingPlayers.length === 1 
+                ? `${playerList} is still choosing their phase.`
+                : `${playerList} are still choosing their phases.`;
+            
+            ui.notifications.warn(message);
+            return;
+        }
+        
+        // All players have selected phases, start combat
+        await this.combat.setFlag(MODULE_ID, "combatStarted", true);
+        console.log("Combat started! All phases selected.");
+        
+        // Re-render to show the combat tracker
+        this.render(true);
+        
+        // Start the actual combat
+        if (!this.combat.started) {
+            this.combat.startCombat();
+        }
+    }
+
+    getPendingPlayers() {
+        if (!this.combat) return [];
+        
+        const playerCombatants = this.combat.combatants.filter(c => 
+            c.actor?.hasPlayerOwner && !c.getFlag(MODULE_ID, "playerSelectedPhase")
+        );
+        
+        // Get unique player names
+        const pendingPlayerNames = [...new Set(
+            playerCombatants.map(c => {
+                // Find the first player who owns this actor
+                const ownerIds = Object.entries(c.actor.ownership)
+                    .filter(([id, level]) => level === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER)
+                    .map(([id]) => id);
+                
+                const ownerUser = game.users.find(u => ownerIds.includes(u.id) && !u.isGM);
+                return ownerUser?.name;
+            }).filter(Boolean)
+        )];
+        
+        return pendingPlayerNames;
     }
 
     setupCombatants() {
@@ -321,8 +377,8 @@ export class CombatDock extends Application {
         this.appendHtml();
         // Ensure phase display is properly initialized
         this.updatePhaseDisplay();
-        this.element[0].querySelectorAll(".buttons-container i").forEach((i) => {
-            i.addEventListener("click", (e) => {
+        this.element[0].querySelectorAll(".buttons-container i, .begin-combat-btn").forEach((element) => {
+            element.addEventListener("click", async (e) => {
                 const action = e.currentTarget.dataset.action;
                 switch (action) {
                     case "previous-phase":
@@ -345,6 +401,9 @@ export class CombatDock extends Application {
                         break;
                     case "start-combat":
                         this.combat.startCombat();
+                        break;
+                    case "begin-combat":
+                        await this.beginCombat();
                         break;
                     case "add-event":
                         new AddEvent(this.combat).render(true);

@@ -50,7 +50,7 @@ Hooks.on('ready', () => {
                     
                     // Refresh the combat dock if it exists
                     if (ui.combatDock) {
-                        ui.combatDock.setupCombatants();
+                        ui.combatDock.render(true);
                     }
                 }
             } catch (error) {
