@@ -176,24 +176,71 @@ export class CombatantPortrait {
         this.element.classList.toggle("action-taken", data.css.includes("action-taken"));
         this.element.style.borderBottomColor = this.getBorderColor(this.token?.document);
         
-        // Remove existing click listeners to prevent duplicates
+        // Remove existing event listeners to prevent duplicates
         if (this._actionClickHandler) {
             this.element.removeEventListener("click", this._actionClickHandler);
         }
+        if (this._mouseDownHandler) {
+            this.element.removeEventListener("mousedown", this._mouseDownHandler);
+        }
+        if (this._mouseUpHandler) {
+            this.element.removeEventListener("mouseup", this._mouseUpHandler);
+        }
+        if (this._mouseLeavehHandler) {
+            this.element.removeEventListener("mouseleave", this._mouseLeavehHandler);
+        }
         
-        // Add GM-only click handler for action tracking
+        // Add GM-only event handlers for action tracking and active combatant selection
         if (game.user.isGM) {
-            this._actionClickHandler = async (event) => {
+            let pressTimer = null;
+            let isLongPress = false;
+            
+            this._mouseDownHandler = (event) => {
+                // Don't trigger on action button clicks
+                if (event.target.classList.contains("action") || event.target.closest(".action")) return;
+                
+                event.preventDefault();
+                isLongPress = false;
+                
+                // Start press timer for long press detection (2 seconds)
+                pressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    this.setAsActiveCombatant();
+                }, 2000);
+            };
+            
+            this._mouseUpHandler = async (event) => {
                 // Don't trigger on action button clicks
                 if (event.target.classList.contains("action") || event.target.closest(".action")) return;
                 
                 event.stopPropagation();
-                console.log("Portrait clicked for combatant:", this.combatant.name);
-                const currentFlag = this.combatant.getFlag(MODULE_ID, "actionTaken") || false;
-                console.log("Current action flag:", currentFlag, "Setting to:", !currentFlag);
-                await this.combatant.setFlag(MODULE_ID, "actionTaken", !currentFlag);
+                
+                // Clear the press timer
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+                
+                // If it wasn't a long press, handle as regular click (action tracking)
+                if (!isLongPress) {
+                    console.log("Portrait clicked for combatant:", this.combatant.name);
+                    const currentFlag = this.combatant.getFlag(MODULE_ID, "actionTaken") || false;
+                    console.log("Current action flag:", currentFlag, "Setting to:", !currentFlag);
+                    await this.combatant.setFlag(MODULE_ID, "actionTaken", !currentFlag);
+                }
             };
-            this.element.addEventListener("click", this._actionClickHandler);
+            
+            this._mouseLeavehHandler = () => {
+                // Cancel long press if mouse leaves the element
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+            };
+            
+            this.element.addEventListener("mousedown", this._mouseDownHandler);
+            this.element.addEventListener("mouseup", this._mouseUpHandler);
+            this.element.addEventListener("mouseleave", this._mouseLeavehHandler);
         }
         
         this.element.querySelectorAll(".action").forEach((action) => {
@@ -242,6 +289,32 @@ export class CombatantPortrait {
         max = this.validateValue(max);
 
         return { max, value, percentage };
+    }
+
+    async setAsActiveCombatant() {
+        console.log("Long press detected - setting as active combatant:", this.combatant.name);
+        
+        // Clear any existing active combatant in this combat
+        const currentActive = this.combat.getFlag(MODULE_ID, "activeCombatant");
+        if (currentActive) {
+            console.log("Clearing previous active combatant");
+        }
+        
+        // Set this combatant as the active one
+        await this.combat.setFlag(MODULE_ID, "activeCombatant", this.combatant.id);
+        
+        // Refresh all portraits to update visual states
+        if (ui.combatDock) {
+            ui.combatDock.setupCombatants();
+        }
+        
+        // Visual feedback
+        ui.notifications.info(`${this.combatant.name} is now the active combatant`);
+    }
+
+    get isActiveCombatant() {
+        const activeCombatantId = this.combat?.getFlag(MODULE_ID, "activeCombatant");
+        return activeCombatantId === this.combatant.id;
     }
 
     validateValue(value) {
@@ -352,7 +425,13 @@ export class CombatantPortrait {
             barsOrder: null,
             displayDescriptions: displayDescriptions,
         };
-        turn.css = [turn.active ? "active" : "", turn.hidden ? "hidden" : "", turn.defeated ? "defeated" : "", turn.actionTaken ? "action-taken" : ""].join(" ").trim();
+        turn.css = [
+            turn.active ? "active" : "", 
+            turn.hidden ? "hidden" : "", 
+            turn.defeated ? "defeated" : "", 
+            turn.actionTaken ? "action-taken" : "",
+            this.isActiveCombatant ? "active-combatant" : ""
+        ].join(" ").trim();
 
         // Actor and Token status effects
         turn.effects = new Set();

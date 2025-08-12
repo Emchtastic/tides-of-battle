@@ -98,6 +98,34 @@
 #combat-dock .combatant-portrait.active .combatant-title {
   display: flex;
 }
+#combat-dock .combatant-portrait.active-combatant {
+  border: 3px solid #ffcd00;
+  box-shadow: 0 0 10px rgba(255, 205, 0, 0.8);
+  z-index: 10;
+}
+#combat-dock .combatant-portrait.active-combatant::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  border: 2px solid #ffcd00;
+  border-radius: inherit;
+  opacity: 0.6;
+  animation: pulse-glow 2s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
 #combat-dock .combatant-portrait.action-taken {
   filter: grayscale(1) brightness(0.7);
   opacity: 0.6;
