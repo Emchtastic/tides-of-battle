@@ -258,16 +258,6 @@ export function registerSettings() {
         onChange: () => ui.combatDock?.refresh(),
     });
 
-    game.settings.register(MODULE_ID, "showInitiativeOnPortrait", {
-        name: "tides-of-battle.settings.showInitiativeOnPortrait.name",
-        hint: "tides-of-battle.settings.showInitiativeOnPortrait.hint",
-        scope: "world",
-        config: true,
-        type: Boolean,
-        default: true,
-        onChange: () => ui.combatDock?.refresh(),
-    });
-
     game.settings.register(MODULE_ID, "portraitImage", {
         name: "tides-of-battle.settings.portraitImage.name",
         hint: "tides-of-battle.settings.portraitImage.hint",
@@ -310,16 +300,6 @@ export function registerSettings() {
     game.settings.register(MODULE_ID, "hideFirstRound", {
         name: "tides-of-battle.settings.hideFirstRound.name",
         hint: "tides-of-battle.settings.hideFirstRound.hint",
-        scope: "world",
-        config: true,
-        type: Boolean,
-        default: false,
-        onChange: () => ui.combatDock?.refresh(),
-    });
-
-    game.settings.register(MODULE_ID, "hideEnemyInitiative", {
-        name: "tides-of-battle.settings.hideEnemyInitiative.name",
-        hint: "tides-of-battle.settings.hideEnemyInitiative.hint",
         scope: "world",
         config: true,
         type: Boolean,

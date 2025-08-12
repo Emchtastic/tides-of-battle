@@ -32,7 +32,6 @@ export class AddEvent extends FormApplication {
                 const event = recentEvents[eventIndex];
                 html.querySelector("[name='name']").value = event.name;
                 html.querySelector("[name='img']").value = event.img;
-                html.querySelector("[name='initiative']").value = event.initiative;
                 html.querySelector("[name='duration']").value = event.duration;
                 html.querySelector("[name='hidden']").checked = event.hidden;
             });
@@ -40,12 +39,11 @@ export class AddEvent extends FormApplication {
     }
 
     async _updateObject(event, formData) {
-        if (!formData.name || !formData.img || (!Number.isNumeric(formData.initiative) && !formData.initiative)) return ui.notifications.error(game.i18n.localize("tides-of-battle.add-event.error"));
+        if (!formData.name || !formData.img) return ui.notifications.error(game.i18n.localize("tides-of-battle.add-event.error"));
         this.combat.createEmbeddedDocuments("Combatant", [
             {
                 name: formData.name,
                 img: formData.img,
-                initiative: formData.initiative,
                 hidden: formData.hidden || false,
                 "flags.tides-of-battle": {
                     event: true,
@@ -55,7 +53,7 @@ export class AddEvent extends FormApplication {
             },
         ]);
         let recentEvents = game.settings.get(MODULE_ID, "events");
-        const newRecentEvent = { name: formData.name, img: formData.img, initiative: formData.initiative, duration: formData.duration, hidden: formData.hidden };
+        const newRecentEvent = { name: formData.name, img: formData.img, duration: formData.duration, hidden: formData.hidden };
         recentEvents = recentEvents.filter((event) => event.name !== newRecentEvent.name && event.img !== newRecentEvent.img);
         recentEvents.unshift(newRecentEvent);
         recentEvents = recentEvents.slice(0, 10);

@@ -4,12 +4,7 @@
     <div class="portrait-bar" style="height: calc( 100% - {{portraitResource.percentage}}% );"></div>
     {{/if}}
 
-    <i style="{{#if hasRolled}}display: none;{{/if}}{{#unless owner}}display: none;{{/unless}}"  {{#if
-        initiativeData.isRollIconImg}}style="background-image: url('{{initiativeData.rollIcon}}');"
-        class="roll-initiative" {{else}}class="{{initiativeData.rollIcon}} roll-initiative" {{/if}}></i>
-
-    <div class="portrait-pass" style="{{#unless showPass}}display: none;{{/unless}}{{#unless
-        hasRolled}}display: none;{{/unless}}{{#unless owner}}display: none;{{/unless}}">
+    <div class="portrait-pass" style="{{#unless showPass}}display: none;{{/unless}}{{#unless owner}}display: none;{{/unless}}">
         <i data-action="player-pass" class="fa-solid fa-chevrons-right"></i>
     </div>
 
@@ -26,12 +21,6 @@
         <div class="tracked-attribute-bar-current secondary-attribute" style="height: {{resource2.percentage}}%;"></div>
         </div>
     {{/if}}
-    <div class="portrait-initiative"  style="order: {{barsOrder.init}};margin-left: calc(var(--combatant-portrait-size) * 0.05 * {{barsOrder.initBars}}); {{#unless showInitiative}}display: none;{{/unless}}{{#if
-        isInitiativeNaN}}display:none;{{/if}}">
-        <i {{#if initiativeData.isIconImg}}style="background-image: url('{{initiativeData.icon}}');"
-            {{else}}class="{{initiativeData.icon}}" {{/if}}></i>
-        <span class="portrait-initiative-text">{{initiativeData.value}}</span>
-    </div>
         <ul class="effects-container" style="order: {{barsOrder.effects}};{{#unless hasEffects}}display:none;{{/unless}}" >
         {{#each effects as |effect|}}
         <li class="portrait-effect" data-uuid="{{effect.uuid}}" style="background-image: url('{{effect.img}}');">

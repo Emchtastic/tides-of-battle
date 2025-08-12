@@ -91,10 +91,6 @@
                 "name": "Hide Defeated",
                 "hint": "Hide defeated combatants from the carousel. They will still be visible in the regular combat tracker in the event that you need to interact with them."
             },
-            "showInitiativeOnPortrait": {
-                "name": "Show Initiative on Portrait",
-                "hint": "Show the initiative value in the top left corner of the portrait. You can always see the initiative in the Tooltip!"
-            },
             "portraitImageBorder": {
                 "name": "Player Border",
                 "hint": "Special border that will be shown for player characters. Leave blank to disable. If you wish to make a custom image, it's suggested you use the default one as reference for correct sizing."
@@ -181,10 +177,6 @@
                 "name": "Hide Until First Turn",
                 "hint": "Hide enemies until they have taken their first turn in combat. (Requires LibWrapper to hide them in the core combat tracker as well.)"
             },
-            "hideEnemyInitiative": {
-                "name": "Hide Enemy Initiative",
-                "hint": "Hide enemy initiative in the tooltip and portrait."
-            },
             "attributesMenu": {
                 "name": "Tooltip Attributes",
                 "label": "Configure Attributes",
@@ -228,7 +220,7 @@
         "add-event": {
             "title": "Add Event",
             "duration": "Event Duration (Rounds)",
-            "error": "Error: You must provide a name, an image and initiative value for the event.",
+            "error": "Error: You must provide a name and an image for the event.",
             "expired": "Event %n has expired."
         },
         "deleteEffectTitle": "Delete Effect",

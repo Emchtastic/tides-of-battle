@@ -155,10 +155,6 @@ export class CombatDock extends Application {
     }
 
     updateCombatant(combatant, updates = {}) {
-        if ("initiative" in updates) {
-            this.setupCombatants();
-            return;
-        }
         const portrait = this.portraits.find((p) => p.combatant === combatant);
         if (portrait) portrait.renderInner();
     }
@@ -170,7 +166,7 @@ export class CombatDock extends Application {
     updateOrder() {
         const combatants = this.sortedCombatants;
         
-        // Simple order based on initiative order
+        // Simple order based on default combat order
         this.portraits.forEach((p) => {
             const order = combatants.indexOf(p.combatant);
             p.element.style.setProperty("order", order);
@@ -212,15 +208,6 @@ export class CombatDock extends Application {
                         break;
                     case "end-combat":
                         this.combat.endCombat();
-                        break;
-                    case "roll-all":
-                        this.combat.rollAll({ event: e });
-                        break;
-                    case "roll-npc":
-                        this.combat.rollNPC({ event: e });
-                        break;
-                    case "reset":
-                        this.combat.resetAll();
                         break;
                     case "configure":
                         new CombatTrackerConfig().render(true);

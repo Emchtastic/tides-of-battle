@@ -1,5 +1,5 @@
 import { MODULE_ID } from "../main.js";
-import { generateDescription, getInitiativeDisplay, getSystemIcons } from "../systems.js";
+import { generateDescription, getSystemIcons } from "../systems.js";
 
 export class CombatantPortrait {
     constructor(combatant) {
@@ -177,13 +177,6 @@ export class CombatantPortrait {
         this.element.classList.toggle("visible", data.css.includes("hidden"));
         this.element.classList.toggle("defeated", data.css.includes("defeated"));
         this.element.style.borderBottomColor = this.getBorderColor(this.token?.document);
-        this.element.querySelector(".roll-initiative").addEventListener("click", async (event) => {
-            event.preventDefault();
-            Hooks.once("renderCombatTracker", () => {
-                ui.combatDock.updateOrder();
-            });
-            await this.combatant.combat.rollInitiative([this.combatant.id],{event});
-        });
         this.element.querySelectorAll(".action").forEach((action) => {
             action.addEventListener("click", async (event) => {
                 event.stopPropagation();
@@ -307,9 +300,6 @@ export class CombatantPortrait {
         const resource2 = hasPermission ? this.getResource(game.settings.get(MODULE_ID, "resource")) : null;
         const portraitResourceSetting = game.settings.get(MODULE_ID, "portraitResource");
         const portraitResource = hasPermission && portraitResourceSetting ? this.getResource(portraitResourceSetting) : null;
-        const initiativeData = this.getInitiativeDisplay();
-        initiativeData.isIconImg = initiativeData.icon.includes(".");
-        initiativeData.isRollIconImg = initiativeData.rollIcon.includes(".");
         const turn = {
             id: combatant.id,
             name: this.name,
@@ -320,16 +310,11 @@ export class CombatantPortrait {
             showPass: combatant.isOwner && !game.user.isGM,
             defeated: combatant.isDefeated,
             hidden: combatant.hidden,
-            initiative: combatant.initiative,
-            hasRolled: combatant.initiative !== null && combatant.initiative !== undefined,
             hasResource: resource !== null,
             hasResource2: resource2 !== null,
             hasPortraitResource: portraitResource !== null,
             hasPlayerOwner: combatant.actor?.hasPlayerOwner,
             hasPermission: hasPermission,
-            showInitiative: game.settings.get(MODULE_ID, "showInitiativeOnPortrait"),
-            isInitiativeNaN: combatant.initiative === null || combatant.initiative === undefined,
-            initiativeData: initiativeData,
             resource: resource,
             resource2: resource2,
             portraitResource: portraitResource,
@@ -344,7 +329,6 @@ export class CombatantPortrait {
             barsOrder: null,
             displayDescriptions: displayDescriptions,
         };
-        if (turn.initiative !== null && !Number.isInteger(turn.initiative)) hasDecimals = true;
         if (turn.initiativeData.value !== null && !Number.isInteger(turn.initiativeData.value)) hasDecimals = true;
         turn.css = [turn.active ? "active" : "", turn.hidden ? "hidden" : "", turn.defeated ? "defeated" : ""].join(" ").trim();
 
@@ -410,10 +394,6 @@ export class CombatantPortrait {
             console.error(e);
             return { resource: null, tooltip: null };
         }
-    }
-
-    getInitiativeDisplay() {
-        return getInitiativeDisplay(this.combatant);
     }
 
     getBorderColor(tokenDocument) {
