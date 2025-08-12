@@ -1,6 +1,15 @@
 import { MODULE_ID } from "../main.js";
 import { AddEvent } from "./AddEvent.js";
 
+// Phase constants
+const PHASES = {
+    FAST: "fast",
+    ENEMY: "enemy", 
+    SLOW: "slow"
+};
+
+const PHASE_ORDER = [PHASES.FAST, PHASES.ENEMY, PHASES.SLOW];
+
 export class CombatDock extends Application {
     constructor(combat) {
         super();
@@ -36,6 +45,67 @@ export class CombatDock extends Application {
 
     get autoFit() {
         return game.settings.get(MODULE_ID, "overflowStyle") == "autofit";
+    }
+
+    // Phase Management Methods
+    get currentPhase() {
+        return this.combat?.getFlag(MODULE_ID, "currentPhase") || PHASES.FAST;
+    }
+
+    get currentRound() {
+        return this.combat?.round || 1;
+    }
+
+    async setPhase(phase) {
+        if (!this.combat) return;
+        console.log("setPhase called with phase:", phase);
+        await this.combat.setFlag(MODULE_ID, "currentPhase", phase);
+        console.log("Phase flag set, calling render");
+        this.render(true);
+    }
+
+    async nextPhase() {
+        console.log("nextPhase called, current phase:", this.currentPhase);
+        const currentPhaseIndex = PHASE_ORDER.indexOf(this.currentPhase);
+        const nextPhaseIndex = (currentPhaseIndex + 1) % PHASE_ORDER.length;
+        console.log("Moving from phase index", currentPhaseIndex, "to", nextPhaseIndex);
+        
+        // If we're going from SLOW back to FAST, increment the round
+        if (this.currentPhase === PHASES.SLOW && PHASE_ORDER[nextPhaseIndex] === PHASES.FAST) {
+            await this.combat.nextRound();
+        }
+        
+        await this.setPhase(PHASE_ORDER[nextPhaseIndex]);
+    }
+
+    async previousPhase() {
+        const currentPhaseIndex = PHASE_ORDER.indexOf(this.currentPhase);
+        const prevPhaseIndex = currentPhaseIndex === 0 ? PHASE_ORDER.length - 1 : currentPhaseIndex - 1;
+        
+        // If we're going from FAST back to SLOW, decrement the round
+        if (this.currentPhase === PHASES.FAST && PHASE_ORDER[prevPhaseIndex] === PHASES.SLOW) {
+            await this.combat.previousRound();
+        }
+        
+        await this.setPhase(PHASE_ORDER[prevPhaseIndex]);
+    }
+
+    getCombatantPhase(combatant) {
+        // For now, all combatants go to FAST phase - we'll add logic later
+        return combatant.getFlag(MODULE_ID, "phase") || PHASES.FAST;
+    }
+
+    async setCombatantPhase(combatant, phase) {
+        await combatant.setFlag(MODULE_ID, "phase", phase);
+    }
+
+    getPhaseDisplayName(phase) {
+        const phaseNames = {
+            [PHASES.FAST]: "Fast Phase",
+            [PHASES.ENEMY]: "Enemy Phase", 
+            [PHASES.SLOW]: "Slow Phase"
+        };
+        return phaseNames[phase] || "Unknown Phase";
     }
 
     setHooks() {
@@ -89,6 +159,9 @@ export class CombatDock extends Application {
         return {
             isGM: game.user.isGM,
             scroll,
+            currentPhase: this.currentPhase,
+            phaseDisplayName: this.getPhaseDisplayName(this.currentPhase),
+            currentRound: this.currentRound,
         };
     }
 
@@ -194,11 +267,11 @@ export class CombatDock extends Application {
             i.addEventListener("click", (e) => {
                 const action = e.currentTarget.dataset.action;
                 switch (action) {
-                    case "previous-turn":
-                        this.combat.previousTurn();
+                    case "previous-phase":
+                        this.previousPhase();
                         break;
-                    case "next-turn":
-                        this.combat.nextTurn();
+                    case "next-phase":
+                        this.nextPhase();
                         break;
                     case "previous-round":
                         this.combat.previousRound();

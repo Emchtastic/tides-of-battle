@@ -29,12 +29,24 @@ Hooks.on('createCombat', (combat) => {
     }
 });
 
+// Set default phase for new combatants
+Hooks.on('createCombatant', async (combatant) => {
+    if (!combatant.getFlag(MODULE_ID, "phase")) {
+        await combatant.setFlag(MODULE_ID, "phase", "fast");
+    }
+});
+
 Hooks.on('updateCombat', (combat, updates) => {
     if(updates.active || updates.scene === null) {
         new CONFIG.combatTrackerDock.CombatDock(combat).render(true);
     }
     if(updates.scene && combat.scene !== game.scenes.viewed && ui.combatDock?.combat === combat) {
         ui.combatDock.close();
+    }
+    
+    // Initialize phase when combat starts
+    if(updates.active === true && !combat.getFlag(MODULE_ID, "currentPhase")) {
+        combat.setFlag(MODULE_ID, "currentPhase", "fast");
     }
 });
 

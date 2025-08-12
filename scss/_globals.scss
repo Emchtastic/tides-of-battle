@@ -1,5 +1,21 @@
 :root{
-    --combatant-portrait-size: 100px;
+    --combat/* Hide initiative elements in core Foundry Combat Tracker */
+#sidebar #combat .combatant .token-initiative,
+#sidebar #combat .combatant .initiative,
+#sidebar #combat .combat-tracker .initiative,
+#sidebar #combat .combat-control[data-control=rollAll],
+#sidebar #combat .combat-control[data-control=rollNPC], 
+#sidebar #combat .combat-control[data-control=resetAll],
+#sidebar #combat .combatant .token-initiative input,
+#sidebar #combat .directory-header .initiative,
+#sidebar #combat .combatant-controls .combatant-control[data-control=rollInitiative],
+/* Hide core navigation buttons - we use our own phase-based navigation */
+#sidebar #combat .combat-control[data-control=previousTurn],
+#sidebar #combat .combat-control[data-control=nextTurn],
+#sidebar #combat .combat-control[data-control=previousRound],
+#sidebar #combat .combat-control[data-control=nextRound] {
+    display: none !important;
+}-size: 100px;
     --combatant-portrait-aspect: 1.5;
     --combatant-portrait-border-radius: 0%;
     --combatant-portrait-margin: 0 calc(var(--combatant-portrait-size) * 0.1);
