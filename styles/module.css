@@ -1,5 +1,5 @@
 :root {
-  -size: 100px;
+  --combatant-portrait-size: 180px; /* Good balance - larger than original 100px but not overwhelming */
   --combatant-portrait-aspect: 1.5;
   --combatant-portrait-border-radius: 0%;
   --combatant-portrait-margin: 0 calc(var(--combatant-portrait-size) * 0.1);
@@ -13,21 +13,6 @@
   --combat-tooltip-bg-color: rgb(43, 43, 43);
   --combatant-portrait-image-border: url("/modules/tides-of-battle/assets/border.png");
   --combatant-portrait-image-background: url("/ui/denim075.png");
-}
-:root --combat #sidebar #combat .combatant .token-initiative,
-:root #sidebar #combat .combatant .initiative,
-:root #sidebar #combat .combat-tracker .initiative,
-:root #sidebar #combat .combat-control[data-control=rollAll],
-:root #sidebar #combat .combat-control[data-control=rollNPC],
-:root #sidebar #combat .combat-control[data-control=resetAll],
-:root #sidebar #combat .combatant .token-initiative input,
-:root #sidebar #combat .directory-header .initiative,
-:root #sidebar #combat .combatant-controls .combatant-control[data-control=rollInitiative],
-:root #sidebar #combat .combat-control[data-control=previousTurn],
-:root #sidebar #combat .combat-control[data-control=nextTurn],
-:root #sidebar #combat .combat-control[data-control=previousRound],
-:root #sidebar #combat .combat-control[data-control=nextRound] {
-  display: none !important;
 }
 
 #ui-top {
@@ -59,9 +44,9 @@
 
 #combat-dock .combatant-portrait {
   pointer-events: all;
-  width: var(--combatant-portrait-size);
-  height: calc(var(--combatant-portrait-size) * var(--combatant-portrait-aspect));
-  margin: 0 calc(var(--combatant-portrait-size) * 0.1);
+  width: 140px !important;
+  height: 210px !important;
+  margin: 0 14px;
   background-repeat: no-repeat;
   background-size: cover;
   border: 1px solid black;
@@ -91,8 +76,8 @@
   }
 }
 #combat-dock .combatant-portrait.active {
-  width: calc(var(--combatant-portrait-size) * 1.2);
-  height: calc(var(--combatant-portrait-size) * var(--combatant-portrait-aspect) * 1.2);
+  width: 168px !important;
+  height: 252px !important;
   animation: border-blink 0.5s ease-in-out infinite alternate;
 }
 #combat-dock .combatant-portrait.active .combatant-title {
@@ -426,29 +411,39 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, var(--combat-tooltip-bg-color) 0%, rgba(43, 43, 43, 0.9) 100%);
-  border: 2px solid var(--combat-tooltip-color);
-  border-radius: 8px;
-  box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.5);
-  margin: 0 1rem;
-  min-width: 150px;
+  padding: 0.15rem 0.25rem;
+  background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 1px solid #444;
+  border-radius: 6px;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  margin: 0 0.2rem;
+  min-width: 70px;
+  max-width: 100px;
   pointer-events: none;
+  backdrop-filter: blur(2px);
 }
 #combat-dock .phase-display .phase-title {
   margin: 0;
   font-size: 1.2rem;
-  font-weight: bold;
-  color: var(--color-text-light-0);
-  text-shadow: 0 0 3px var(--color-text-dark-1);
+  font-weight: 600;
+  color: #e2e8f0;
+  text-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.8),
+    0 0 4px rgba(255, 255, 255, 0.2);
   text-align: center;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 #combat-dock .phase-display .round-display {
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-text-light-3);
-  text-shadow: 0 0 2px var(--color-text-dark-1);
-  opacity: 0.8;
+  font-size: 0.95rem;
+  color: #94a3b8;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+  opacity: 0.9;
+  font-weight: 500;
+  letter-spacing: 0.3px;
 }
 #combat-dock .begin-combat-container {
   display: flex;
