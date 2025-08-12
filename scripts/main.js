@@ -176,6 +176,15 @@ Hooks.on('createCombatant', async (combatant) => {
             return;
         }
         
+        // Check if phase already set by player to avoid overriding player choices
+        const existingPhase = combatant.getFlag(MODULE_ID, "phase");
+        const alreadySelected = combatant.getFlag(MODULE_ID, "playerSelectedPhase");
+        
+        if (existingPhase && alreadySelected) {
+            console.log(`${combatant.name} already has phase selected by player: ${existingPhase}, skipping auto-assignment`);
+            return;
+        }
+        
         if (disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE) {
             defaultPhase = "enemy";
         } else if (disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY) {
