@@ -264,34 +264,35 @@ export class CombatantPortrait {
     async setAsActiveCombatant() {
         console.log("Right-click detected - setting as active combatant:", this.combatant.name);
         
-        // Clear any existing active combatant in this combat
+        // Clear any existing active combatant flag (but keep the visual indicator via combat turn)
         const currentActive = this.combat.getFlag(MODULE_ID, "activeCombatant");
         if (currentActive) {
-            console.log("Clearing previous active combatant");
-            // Clear the turn indicator from the previous token
-            const previousCombatant = this.combat.combatants.get(currentActive);
-            if (previousCombatant?.token?.object) {
-                this.clearTurnIndicator(previousCombatant.token.object);
-            }
+            console.log("Clearing previous active combatant flag");
         }
         
         // Set this combatant as the active one
         await this.combat.setFlag(MODULE_ID, "activeCombatant", this.combatant.id);
         
-        // Add Foundry's native turn indicator to the token
-        const tokenObject = this.combatant.token?.object;
-        console.log("Attempting to add turn indicator to token object:", tokenObject);
-        
-        if (tokenObject) {
-            this.addTurnIndicator(tokenObject);
-        } else {
-            console.warn("No token object found for combatant:", this.combatant.name);
-            // Try alternative method to find token
-            const foundToken = canvas.tokens.placeables.find(t => t.document.id === this.combatant.token?.id);
-            console.log("Alternative token search result:", foundToken);
-            if (foundToken) {
-                this.addTurnIndicator(foundToken);
+        // Use Foundry's actual combat system to show the orange d20 indicator
+        try {
+            const combat = this.combat;
+            if (combat) {
+                // Find the index of this combatant in the combat turns
+                const combatantIndex = combat.turns.findIndex(c => c.id === this.combatant.id);
+                
+                if (combatantIndex >= 0) {
+                    console.log(`Setting combat turn to index ${combatantIndex} for ${this.combatant.name}`);
+                    
+                    // This is the key - setting the combat turn triggers Foundry's native orange d20 indicator
+                    await combat.update({ turn: combatantIndex });
+                    
+                    console.log("Successfully set combat turn - Foundry's orange d20 should now be visible");
+                } else {
+                    console.warn("Could not find combatant index in combat turns");
+                }
             }
+        } catch (error) {
+            console.error("Error setting combat turn:", error);
         }
         
         // Refresh all portraits to update visual states
@@ -301,91 +302,6 @@ export class CombatantPortrait {
         
         // Visual feedback
         ui.notifications.info(`${this.combatant.name} is now acting`);
-    }
-
-    addTurnIndicator(tokenObject) {
-        console.log("addTurnIndicator called with:", tokenObject);
-        
-        try {
-            // Use Foundry's native turn indicator system
-            if (typeof tokenObject.drawTurnIndicator === 'function') {
-                tokenObject.drawTurnIndicator();
-                console.log("Added native turn indicator to", this.combatant.name);
-            } else {
-                // Fallback to manual turn indicator creation using Foundry's approach
-                this.drawCustomTurnIndicator(tokenObject);
-            }
-        } catch (error) {
-            console.error("Error creating turn indicator:", error);
-        }
-    }
-
-    drawCustomTurnIndicator(tokenObject) {
-        // Remove any existing indicators first
-        this.clearTurnIndicator(tokenObject);
-        
-        // Create turn indicator using Foundry's style
-        const indicator = new PIXI.Container();
-        indicator.name = "turnIndicator";
-        
-        // Create the spinning die background
-        const bg = new PIXI.Graphics();
-        bg.beginFill(0x000000, 0.8);
-        bg.drawCircle(0, 0, tokenObject.w * 0.2);
-        bg.endFill();
-        indicator.addChild(bg);
-        
-        // Create the die icon
-        const icon = new PIXI.Text("🎲", {
-            fontSize: tokenObject.w * 0.25,
-            fill: 0xffffff,
-            anchor: 0.5
-        });
-        icon.anchor.set(0.5);
-        indicator.addChild(icon);
-        
-        // Position the indicator
-        indicator.x = tokenObject.w / 2;
-        indicator.y = tokenObject.h * 0.1; // Top of token
-        indicator.zIndex = 1000; // Above token
-        
-        // Add to token
-        tokenObject.addChild(indicator);
-        
-        // Create rotation animation
-        const ticker = (delta) => {
-            if (indicator.parent) {
-                icon.rotation += 0.1 * delta;
-            } else {
-                canvas.app.ticker.remove(ticker);
-            }
-        };
-        
-        canvas.app.ticker.add(ticker);
-        console.log("Added custom turn indicator to", this.combatant.name);
-    }
-
-    clearTurnIndicator(tokenObject) {
-        console.log("clearTurnIndicator called with:", tokenObject);
-        
-        try {
-            // Use Foundry's native method if available
-            if (typeof tokenObject.clearTurnIndicator === 'function') {
-                tokenObject.clearTurnIndicator();
-                console.log("Cleared native turn indicator");
-            } else {
-                // Manual cleanup
-                const existingIndicator = tokenObject.children.find(child => 
-                    child.name === "turnIndicator" || child.name === "activeIndicator"
-                );
-                if (existingIndicator) {
-                    tokenObject.removeChild(existingIndicator);
-                    console.log("Removed custom turn indicator");
-                }
-            }
-        } catch (error) {
-            console.error("Error clearing turn indicator:", error);
-        }
     }
 
     get isActiveCombatant() {
