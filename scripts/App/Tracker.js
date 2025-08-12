@@ -69,8 +69,10 @@ export class CombatDock extends Application {
         if (!this.combat) return;
         console.log("setPhase called with phase:", phase);
         await this.combat.setFlag(MODULE_ID, "currentPhase", phase);
-        console.log("Phase flag set, updating phase display");
-        this.updatePhaseDisplay();
+        console.log("Phase flag set, triggering full re-render for all clients");
+        
+        // Trigger a full re-render for all clients to see the phase change
+        this.render(true);
     }
 
     updatePhaseDisplay() {
@@ -110,9 +112,9 @@ export class CombatDock extends Application {
                 return;
             }
             
-            // Set awaiting flag to hide combat tracker immediately
-            await this.combat.setFlag(MODULE_ID, "awaitingPhaseSelection", true);
-            console.log("Combat tracker hidden - awaiting phase selection");
+            // Set UI state to selecting to show phase selection interface
+            await this.combat.setFlag(MODULE_ID, "uiState", "selecting");
+            console.log("UI state set to selecting - showing phase selection interface");
             
             // Refresh UI to show "waiting for players" message
             this.render(true);
@@ -164,7 +166,7 @@ export class CombatDock extends Application {
         }
         
         // Notify all players
-        ui.notifications.info("New round starting - please select your phase!");
+        console.log("New round starting - all players should select their phase!");
         console.log("All players prompted for new round");
     }
 
@@ -172,16 +174,30 @@ export class CombatDock extends Application {
     async finishRoundAdvancement() {
         console.log("=== ALL PLAYERS READY - FINISHING ROUND ADVANCEMENT ===");
         
-        if (!game.user.isGM) return;
+        if (!game.user.isGM) {
+            console.log("Not GM, skipping round advancement");
+            return;
+        }
         
-        // Clear the awaiting flag
+        console.log("GM finishing round advancement...");
+        
+        // Ensure combat is marked as started and set UI state to active
+        await this.combat.setFlag(MODULE_ID, "combatStarted", true);
+        await this.combat.setFlag(MODULE_ID, "uiState", "active");
+        console.log("Combat started flag set and UI state set to active");
+        
+        // Clear old flags that are no longer needed
         await this.combat.unsetFlag(MODULE_ID, "awaitingPhaseSelection");
+        await this.combat.unsetFlag(MODULE_ID, "needsPhaseSelection");
+        console.log("Old flags cleared - all clients should refresh");
         
         // Now advance to the next round
         await this.combat.nextRound();
+        console.log("Round advanced to:", this.combat.round);
         
         // Set the phase to FAST (start of new round)
         await this.setPhase(PHASES.FAST);
+        console.log("Phase set to FAST");
         
         // Refresh the combat tracker to show with new phases
         this.render(true);
@@ -298,21 +314,32 @@ export class CombatDock extends Application {
     getData() {
         const scroll = game.settings.get(MODULE_ID, "overflowStyle") === "scroll";
         const hasCombat = !!this.combat;
-        const combatStarted = this.combat?.getFlag(MODULE_ID, "combatStarted") ?? false;
-        const awaitingPhaseSelection = this.combat?.getFlag(MODULE_ID, "awaitingPhaseSelection") ?? false;
+        
+        // Simplified: Use a single UI state flag instead of multiple complex flags
+        const uiState = this.combat?.getFlag(MODULE_ID, "uiState") ?? "preparation";
+        // Possible states: "preparation", "selecting", "active"
+        
         const pendingPlayers = this.getPendingPlayers();
         
-        return {
+        console.log("=== TRACKER getData() ===");
+        console.log("User:", game.user.name, "IsGM:", game.user.isGM);
+        console.log("hasCombat:", hasCombat);
+        console.log("uiState:", uiState);
+        console.log("pendingPlayers:", pendingPlayers);
+        
+        const data = {
             isGM: game.user.isGM,
             scroll,
             hasCombat,
-            combatStarted,
-            awaitingPhaseSelection,
+            uiState,
             pendingPlayers,
             currentPhase: this.currentPhase,
             phaseDisplayName: this.getPhaseDisplayName(this.currentPhase),
             currentRound: this.currentRound,
         };
+        
+        console.log("Template data:", data);
+        return data;
     }
 
     async beginCombat() {
@@ -329,10 +356,11 @@ export class CombatDock extends Application {
             ui.notifications.warn(message);
             return;
         }
-        
+
         // All players have selected phases, start combat
         await this.combat.setFlag(MODULE_ID, "combatStarted", true);
-        console.log("Combat started! All phases selected.");
+        await this.combat.setFlag(MODULE_ID, "uiState", "active");
+        console.log("Combat started! All phases selected. UI state set to active.");
         
         // Re-render to show the combat tracker
         this.render(true);

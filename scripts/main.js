@@ -25,6 +25,14 @@ Hooks.once('setup', registerSettings);
 
 Hooks.on('createCombat', (combat) => {
     console.log("createCombat hook triggered for combat:", combat.id);
+    
+    // Set initial UI state to preparation for new combats
+    if (game.user.isGM) {
+        combat.setFlag(MODULE_ID, "uiState", "preparation").then(() => {
+            console.log("Initial UI state set to preparation");
+        });
+    }
+    
     if (game.combat === combat) {
         console.log("Creating new CombatDock for combat:", combat.id);
         new CONFIG.combatTrackerDock.CombatDock(combat).render(true);
@@ -106,9 +114,6 @@ Hooks.on('ready', () => {
                             ui.combatDock.render(true);
                         }
                         
-                        // Send confirmation to the requesting player
-                        ui.notifications.info(`Phase set for ${combatant.name}: ${pendingPhaseChoice}`);
-                        
                     } catch (error) {
                         console.error("Error processing phase selection request:", error);
                         // Clear the pending request even if there was an error
@@ -174,15 +179,6 @@ Hooks.on('ready', () => {
                                 
                                 console.log("Phase selection request set successfully (new round)");
                                 
-                                // Show feedback to the player
-                                const phaseName = phaseChoice === "fast" ? 
-                                    game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
-                                    game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
-                                ui.notifications.info(game.i18n.format(`${MODULE_ID}.phaseSelection.notification`, { 
-                                    name: combatant.name, 
-                                    phase: phaseName 
-                                }));
-                                
                             } catch (flagError) {
                                 console.error("Error setting phase choice flag:", flagError);
                                 console.log("Permission denied - trying alternative approach");
@@ -203,7 +199,7 @@ Hooks.on('ready', () => {
                                     const phaseName = phaseChoice === "fast" ? 
                                         game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
                                         game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
-                                    ui.notifications.info(`Phase choice sent to GM: ${phaseName}`);
+                                    console.log(`Phase choice sent to GM via socket: ${phaseName}`);
                                 } else {
                                     ui.notifications.error(`Could not set phase choice: ${flagError.message}`);
                                 }
@@ -226,6 +222,46 @@ Hooks.on('ready', () => {
     
     console.log("Phase selection prompt watcher ready");
     
+    // All clients watch for changes to combat flags that affect UI visibility
+    Hooks.on('updateCombat', (combat, updateData, options, userId) => {
+        // Check if any combat UI flags changed
+        const flagsChanged = updateData.flags?.[MODULE_ID];
+        
+        if (flagsChanged) {
+            console.log("=== COMBAT FLAGS CHANGED ===");
+            console.log("User:", game.user.name, "Is GM:", game.user.isGM);
+            console.log("Flags changed:", flagsChanged);
+            
+            // Check specific flags that affect UI
+            const uiStateChanged = flagsChanged.hasOwnProperty('uiState');
+            const phaseChanged = flagsChanged.hasOwnProperty('currentPhase');
+            const awaitingChanged = flagsChanged.hasOwnProperty('awaitingPhaseSelection');
+            const combatStartedChanged = flagsChanged.hasOwnProperty('combatStarted');
+            
+            if (uiStateChanged || phaseChanged || awaitingChanged || combatStartedChanged) {
+                console.log("UI-affecting flags changed - refreshing combat dock");
+                
+                // Refresh the combat dock for all clients
+                if (ui.combatDock) {
+                    console.log("Refreshing combat dock due to flag change");
+                    ui.combatDock.render(true);
+                }
+                
+                // Additional success message for players when UI state becomes active
+                if (uiStateChanged && flagsChanged.uiState === "active" && !game.user.isGM) {
+                    console.log("Combat is now active - all players ready!");
+                }
+                
+                // Log phase changes for debugging
+                if (phaseChanged) {
+                    console.log(`Phase changed to: ${flagsChanged.currentPhase}`);
+                }
+            }
+        }
+    });
+    
+    console.log("Combat state change watcher ready");
+    
     // Socket fallback handler for permission errors
     if (game.user.isGM) {
         game.socket.on(`module.${MODULE_ID}`, async (data) => {
@@ -243,9 +279,6 @@ Hooks.on('ready', () => {
                         await combatant.unsetFlag(MODULE_ID, "needsPhaseSelection");
                         
                         console.log(`Socket fallback: Processed phase choice for ${combatant.name}: ${data.choice}`);
-                        
-                        // Notify the GM
-                        ui.notifications.info(`${data.userName} selected ${data.choice} phase for ${combatant.name} (via fallback)`);
                         
                     } catch (error) {
                         console.error("Error processing socket fallback phase choice:", error);
@@ -363,17 +396,14 @@ async function repromptAllPlayersForPhase(combat) {
     }
     
     // Notify all players about the new round
-    ui.notifications.info(`Round ${combat.round} - Please select your phase!`);
+    console.log(`Round ${combat.round} - All players should select their phase!`);
     
     console.log("All players re-prompted for phase selection");
 }
 
-// Check if all players have selected their phases and clear the awaiting flag
+// Check if all players have selected their phases and update UI state
 async function checkAllPlayersReady(combat) {
     if (!combat || !game.user.isGM) return;
-    
-    const awaitingPhaseSelection = combat.getFlag(MODULE_ID, "awaitingPhaseSelection");
-    if (!awaitingPhaseSelection) return; // Not in re-selection mode
     
     console.log("=== CHECKING IF ALL PLAYERS ARE READY ===");
     
@@ -382,28 +412,47 @@ async function checkAllPlayersReady(combat) {
     });
     
     const playersWithPhases = playerCombatants.filter(combatant => {
-        return combatant.getFlag(MODULE_ID, "playerSelectedPhase");
+        return combatant.getFlag(MODULE_ID, "phase");
     });
     
     console.log(`Players ready: ${playersWithPhases.length}/${playerCombatants.length}`);
     
     if (playersWithPhases.length >= playerCombatants.length) {
-        console.log("All players have selected their phases - finishing round advancement");
+        console.log("All players have selected their phases");
         
-        // Call the combat tracker to finish the round advancement
-        if (ui.combatDock && ui.combatDock.finishRoundAdvancement) {
-            await ui.combatDock.finishRoundAdvancement();
-        } else {
-            // Fallback: clear the flag manually
-            await combat.unsetFlag(MODULE_ID, "awaitingPhaseSelection");
+        // Determine the appropriate action based on current state
+        const combatStarted = combat.getFlag(MODULE_ID, "combatStarted");
+        const currentUiState = combat.getFlag(MODULE_ID, "uiState");
+        
+        if (combatStarted && currentUiState === "selecting") {
+            // This is mid-combat phase re-selection - call finishRoundAdvancement
+            console.log("Mid-combat phase selection complete - finishing round advancement");
             
-            // Refresh the combat dock
-            if (ui.combatDock) {
-                ui.combatDock.render(true);
+            if (ui.combatDock && ui.combatDock.finishRoundAdvancement) {
+                await ui.combatDock.finishRoundAdvancement();
+            } else {
+                // Fallback: manually set the state and phase
+                await combat.setFlag(MODULE_ID, "uiState", "active");
+                await combat.nextRound();
+                await combat.setFlag(MODULE_ID, "currentPhase", "fast");
+                console.log("Fallback round advancement completed");
             }
-            
-            ui.notifications.info("All players have selected their phases. Combat tracker is now visible!");
+        } else {
+            // This is initial combat setup
+            console.log("Initial phase selection complete - setting preparation state");
+            await combat.setFlag(MODULE_ID, "uiState", "preparation");
         }
+        
+        // Clear old flags
+        await combat.unsetFlag(MODULE_ID, "needsPhaseSelection");
+        await combat.unsetFlag(MODULE_ID, "awaitingPhaseSelection");
+        
+        // Refresh the combat dock
+        if (ui.combatDock) {
+            ui.combatDock.render(true);
+        }
+        
+        console.log("UI state updated - all players ready!");
     }
 }
 
@@ -452,15 +501,6 @@ Hooks.on('createCombatant', async (combatant) => {
                             console.log("Phase selection request set successfully");
                             console.log(`Player ${game.user.name} requested ${phaseChoice} phase for ${combatant.name}`);
                             
-                            // Show feedback to the player
-                            const phaseName = phaseChoice === "fast" ? 
-                                game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
-                                game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
-                            ui.notifications.info(game.i18n.format(`${MODULE_ID}.phaseSelection.notification`, { 
-                                name: combatant.name, 
-                                phase: phaseName 
-                            }));
-                            
                         } catch (flagError) {
                             console.error("Error setting phase choice flag:", flagError);
                             console.log("Permission denied - trying socket fallback");
@@ -481,7 +521,7 @@ Hooks.on('createCombatant', async (combatant) => {
                                 const phaseName = phaseChoice === "fast" ? 
                                     game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
                                     game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
-                                ui.notifications.info(`Phase choice sent to GM: ${phaseName}`);
+                                console.log(`Phase choice sent to GM via socket: ${phaseName}`);
                             } else {
                                 ui.notifications.error(`Could not set phase choice: ${flagError.message}`);
                             }
@@ -537,45 +577,35 @@ Hooks.on('createCombatant', async (combatant) => {
 async function promptPhaseSelection(combatant) {
     return new Promise((resolve) => {
         const dialog = new Dialog({
-            title: game.i18n.format(`${MODULE_ID}.phaseSelection.title`, { name: combatant.name }),
+            title: `${combatant.name} - Choose Phase`,
             content: `
                 <div style="text-align: center; margin: 20px 0;">
-                    <h3>${game.i18n.localize(`${MODULE_ID}.phaseSelection.choosePhase`)}</h3>
-                    <p>${game.i18n.format(`${MODULE_ID}.phaseSelection.description`, { name: combatant.name })}</p>
+                    <h3>Choose your combat phase</h3>
+                    <p>How will <strong>${combatant.name}</strong> act this round?</p>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 15px; margin: 20px 0;">
-                    <div style="border: 2px solid #4a90e2; border-radius: 8px; padding: 15px; background: rgba(74, 144, 226, 0.1);">
-                        <h4 style="margin: 0 0 10px 0; color: #4a90e2;">${game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.title`)}</h4>
-                        <p style="margin: 0; font-size: 14px;">
-                            ${game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.description`)}
-                        </p>
+                <div style="display: flex; gap: 20px; margin: 20px 0; justify-content: center;">
+                    <div style="border: 2px solid #4a90e2; border-radius: 8px; padding: 15px; background: rgba(74, 144, 226, 0.1); text-align: center; min-width: 150px;">
+                        <i class="fas fa-fist-raised" style="font-size: 2em; color: #4a90e2; margin-bottom: 10px;"></i>
+                        <h4 style="margin: 0 0 5px 0; color: #4a90e2;">Fast Phase</h4>
+                        <p style="margin: 0; font-size: 12px; color: #666;">Strike quickly</p>
                     </div>
-                    <div style="border: 2px solid #e74c3c; border-radius: 8px; padding: 15px; background: rgba(231, 76, 60, 0.1);">
-                        <h4 style="margin: 0 0 10px 0; color: #e74c3c;">${game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.title`)}</h4>
-                        <p style="margin: 0; font-size: 14px;">
-                            ${game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.description`)}
-                        </p>
+                    <div style="border: 2px solid #e74c3c; border-radius: 8px; padding: 15px; background: rgba(231, 76, 60, 0.1); text-align: center; min-width: 150px;">
+                        <i class="fas fa-shield-alt" style="font-size: 2em; color: #e74c3c; margin-bottom: 10px;"></i>
+                        <h4 style="margin: 0 0 5px 0; color: #e74c3c;">Slow Phase</h4>
+                        <p style="margin: 0; font-size: 12px; color: #666;">Prepare carefully</p>
                     </div>
                 </div>
-                <p style="text-align: center; font-style: italic; color: #666; margin-top: 20px;">
-                    ${game.i18n.localize(`${MODULE_ID}.phaseSelection.advice`)}
-                </p>
             `,
             buttons: {
                 fast: {
-                    icon: '<i class="fas fa-bolt"></i>',
-                    label: game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`),
+                    icon: '<i class="fas fa-fist-raised"></i>',
+                    label: "Fast",
                     callback: () => resolve("fast")
                 },
                 slow: {
-                    icon: '<i class="fas fa-hourglass-half"></i>',
-                    label: game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`),
+                    icon: '<i class="fas fa-shield-alt"></i>',
+                    label: "Slow", 
                     callback: () => resolve("slow")
-                },
-                cancel: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Cancel",
-                    callback: () => resolve(null)
                 }
             },
             default: "fast",

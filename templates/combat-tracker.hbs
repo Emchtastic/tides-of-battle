@@ -1,51 +1,38 @@
 <div id="combat-dock" class="hidden">
     {{#if hasCombat}}
-        {{#if combatStarted}}
-            {{#if awaitingPhaseSelection}}
-                <!-- Mid-Combat Phase Re-Selection -->
-                <div class="begin-combat-container">
-                    <div class="phase-selection-status">
-                        <h2>Round {{currentRound}} - Phase Selection</h2>
-                        <p>Players are selecting their phases for the new round...</p>
-                        {{#if pendingPlayers}}
-                            <div class="pending-players">
-                                <span>Waiting for:</span>
-                                {{#each pendingPlayers}}
-                                    <span class="pending-player">{{this}}</span>{{#unless @last}}, {{/unless}}
-                                {{/each}}
-                            </div>
-                        {{/if}}
-                    </div>
-                </div>
-            {{else}}
-                <!-- Normal Combat Tracker -->
-                <div class="buttons-container left" {{#unless isGM}}style="display: none;"{{/unless}}>
-                    <i class="fas fa-chevron-left" data-tooltip="Previous Phase" data-action="previous-phase"></i>
-                    <i class="fas fa-chevrons-left" data-tooltip="COMBAT.RoundPrev" data-action="previous-round"></i>
-                </div>
-                
-                <!-- Phase Display -->
-                <div class="phase-display">
-                    <h2 class="phase-title">{{phaseDisplayName}}</h2>
-                    <span class="round-display">Round {{currentRound}}</span>
-                </div>
-                
-                <div id="combatants" {{#if scroll}}style="pointer-events: all;"{{/if}}></div>
-                
-                <div class="buttons-container right" {{#unless isGM}}style="display: none;"{{/unless}}>
-                    <i class="fa-solid fa-globe" data-tooltip="tides-of-battle.add-event.title" data-action="add-event"></i>
-                    <i class="fas fa-ban" data-tooltip="COMBAT.End" data-action="end-combat"></i>
-                    <i class="fas fa-cog" data-tooltip="COMBAT.Settings" data-action="configure"></i>
-                    <i class="fas fa-chevron-right" data-tooltip="Next Phase" data-action="next-phase"></i>
-                    <i class="fas fa-chevrons-right" data-tooltip="COMBAT.RoundNext" data-action="next-round"></i>
-                </div>
-            {{/if}}
+        {{#if (eq uiState "active")}}
+            <!-- Normal Combat Tracker -->
+            <div class="buttons-container left" {{#unless isGM}}style="display: none;"{{/unless}}>
+                <i class="fas fa-chevron-left" data-tooltip="Previous Phase" data-action="previous-phase"></i>
+                <i class="fas fa-chevrons-left" data-tooltip="COMBAT.RoundPrev" data-action="previous-round"></i>
+            </div>
+            
+            <!-- Phase Display -->
+            <div class="phase-display">
+                <h2 class="phase-title">{{phaseDisplayName}}</h2>
+                <span class="round-display">Round {{currentRound}}</span>
+            </div>
+            
+            <div id="combatants" {{#if scroll}}style="pointer-events: all;"{{/if}}></div>
+            
+            <div class="buttons-container right" {{#unless isGM}}style="display: none;"{{/unless}}>
+                <i class="fa-solid fa-globe" data-tooltip="tides-of-battle.add-event.title" data-action="add-event"></i>
+                <i class="fas fa-ban" data-tooltip="COMBAT.End" data-action="end-combat"></i>
+                <i class="fas fa-cog" data-tooltip="COMBAT.Settings" data-action="configure"></i>
+                <i class="fas fa-chevron-right" data-tooltip="Next Phase" data-action="next-phase"></i>
+                <i class="fas fa-chevrons-right" data-tooltip="COMBAT.RoundNext" data-action="next-round"></i>
+            </div>
         {{else}}
-            <!-- Pre-Combat Phase Selection -->
+            <!-- Phase Selection or Combat Preparation -->
             <div class="begin-combat-container">
                 <div class="phase-selection-status">
-                    <h2>Preparing for Combat</h2>
-                    <p>Players are selecting their phases...</p>
+                    {{#if (eq uiState "selecting")}}
+                        <h2>Round {{currentRound}} - Phase Selection</h2>
+                        <p>Players are selecting their phases for the new round...</p>
+                    {{else}}
+                        <h2>Preparing for Combat</h2>
+                        <p>Players are selecting their phases...</p>
+                    {{/if}}
                     {{#if pendingPlayers}}
                         <div class="pending-players">
                             <span>Waiting for:</span>
@@ -56,16 +43,18 @@
                     {{/if}}
                 </div>
                 {{#if isGM}}
-                    <div class="combat-prep-buttons">
-                        <button class="cancel-encounter-btn" data-action="cancel-encounter">
-                            <i class="fas fa-times"></i>
-                            Cancel Encounter
-                        </button>
-                        <button class="begin-combat-btn" data-action="begin-combat">
-                            <i class="fas fa-play"></i>
-                            Begin Combat
-                        </button>
-                    </div>
+                    {{#if (eq uiState "preparation")}}
+                        <div class="combat-prep-buttons">
+                            <button class="cancel-encounter-btn" data-action="cancel-encounter">
+                                <i class="fas fa-times"></i>
+                                Cancel Encounter
+                            </button>
+                            <button class="begin-combat-btn" data-action="begin-combat">
+                                <i class="fas fa-play"></i>
+                                Begin Combat
+                            </button>
+                        </div>
+                    {{/if}}
                 {{/if}}
             </div>
         {{/if}}
