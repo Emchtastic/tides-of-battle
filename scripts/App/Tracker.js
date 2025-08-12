@@ -101,9 +101,23 @@ export class CombatDock extends Application {
         const nextPhaseIndex = (currentPhaseIndex + 1) % PHASE_ORDER.length;
         console.log("Moving from phase index", currentPhaseIndex, "to", nextPhaseIndex);
         
-        // If we're going from SLOW back to FAST, increment the round
+        // If we're going from SLOW back to FAST, increment the round and re-prompt players
         if (this.currentPhase === PHASES.SLOW && PHASE_ORDER[nextPhaseIndex] === PHASES.FAST) {
+            console.log("=== END OF ROUND DETECTED - ADVANCING TO NEXT ROUND ===");
+            
+            // Set the awaiting flag immediately to hide the combat tracker
+            if (game.user.isGM) {
+                await this.combat.setFlag(MODULE_ID, "awaitingPhaseSelection", true);
+                console.log("Set awaitingPhaseSelection flag - combat tracker will hide");
+                
+                // Refresh the UI to show the phase selection screen
+                this.render(true);
+            }
+            
             await this.combat.nextRound();
+            
+            // The nextRound call will trigger the updateCombat hook which handles re-prompting
+            console.log("Round advanced - phase re-prompting should begin");
         }
         
         await this.setPhase(PHASE_ORDER[nextPhaseIndex]);
@@ -219,6 +233,7 @@ export class CombatDock extends Application {
         const scroll = game.settings.get(MODULE_ID, "overflowStyle") === "scroll";
         const hasCombat = !!this.combat;
         const combatStarted = this.combat?.getFlag(MODULE_ID, "combatStarted") ?? false;
+        const awaitingPhaseSelection = this.combat?.getFlag(MODULE_ID, "awaitingPhaseSelection") ?? false;
         const pendingPlayers = this.getPendingPlayers();
         
         return {
@@ -226,6 +241,7 @@ export class CombatDock extends Application {
             scroll,
             hasCombat,
             combatStarted,
+            awaitingPhaseSelection,
             pendingPlayers,
             currentPhase: this.currentPhase,
             phaseDisplayName: this.getPhaseDisplayName(this.currentPhase),
@@ -320,9 +336,20 @@ export class CombatDock extends Application {
     getPendingPlayers() {
         if (!this.combat) return [];
         
+        console.log("Checking pending players...");
+        this.combat.combatants.forEach(c => {
+            if (c.actor?.hasPlayerOwner) {
+                const phase = c.getFlag(MODULE_ID, "phase");
+                const playerSelected = c.getFlag(MODULE_ID, "playerSelectedPhase");
+                console.log(`- ${c.name}: phase=${phase}, playerSelected=${playerSelected}, hasPlayerOwner=${c.actor?.hasPlayerOwner}`);
+            }
+        });
+        
         const playerCombatants = this.combat.combatants.filter(c => 
             c.actor?.hasPlayerOwner && !c.getFlag(MODULE_ID, "playerSelectedPhase")
         );
+        
+        console.log(`Found ${playerCombatants.length} combatants without playerSelectedPhase flag`);
         
         // Get unique player names
         const pendingPlayerNames = [...new Set(
@@ -333,10 +360,12 @@ export class CombatDock extends Application {
                     .map(([id]) => id);
                 
                 const ownerUser = game.users.find(u => ownerIds.includes(u.id) && !u.isGM);
+                console.log(`- Pending: ${c.name} owned by ${ownerUser?.name}`);
                 return ownerUser?.name;
             }).filter(Boolean)
         )];
         
+        console.log("Pending players:", pendingPlayerNames);
         return pendingPlayerNames;
     }
 
@@ -592,6 +621,12 @@ export class CombatDock extends Application {
     }
 
     async _onRoundChange() {
+        // Only GM should handle round changes and combatant updates
+        if (!game.user.isGM) {
+            console.log("Round change detected by player, but only GM processes updates");
+            return;
+        }
+        
         const toDelete = [];
         const toClearActions = [];
         

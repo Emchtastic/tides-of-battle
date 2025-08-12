@@ -67,30 +67,211 @@ function ensureCombatDockExists() {
 }
 
 Hooks.on('ready', () => {
-    // Socket handler for player phase choices - only set up when game is ready
-    game.socket.on("module.tides-of-battle", async (data) => {
-        if (!game.user.isGM) return; // Only GM should handle these messages
+    console.log("=== SETTING UP PHASE SELECTION SYSTEM ===");
+    console.log("User is GM:", game.user?.isGM);
+    
+    // Set up update hook to watch for phase selection requests
+    if (game.user.isGM) {
+        console.log("Setting up GM phase selection processor");
         
-        if (data.type === "setPlayerPhase") {
-            try {
+        // Watch for combatant updates that contain phase selection requests
+        Hooks.on('updateCombatant', (combatant, updateData, options, userId) => {
+            console.log("=== COMBATANT UPDATE DETECTED ===");
+            
+            // Check if this update contains a phase selection request
+            const pendingPhaseChoice = updateData.flags?.[MODULE_ID]?.pendingPhaseChoice;
+            if (pendingPhaseChoice) {
+                console.log("=== PROCESSING PHASE SELECTION REQUEST ===");
+                console.log("Combatant:", combatant.name);
+                console.log("Requested phase:", pendingPhaseChoice);
+                console.log("Requested by user:", userId);
+                
+                // Process the phase selection
+                (async () => {
+                    try {
+                        // Set the actual phase
+                        await combatant.setFlag(MODULE_ID, "phase", pendingPhaseChoice);
+                        await combatant.setFlag(MODULE_ID, "playerSelectedPhase", true);
+                        
+                        // Clear the pending request
+                        await combatant.unsetFlag(MODULE_ID, "pendingPhaseChoice");
+                        
+                        console.log(`GM processed phase choice: ${combatant.name} -> ${pendingPhaseChoice} (requested by user ${userId})`);
+                        
+                        // Check if all players have now selected their phases
+                        await checkAllPlayersReady(combatant.combat);
+                        
+                        // Refresh the combat dock if it exists
+                        if (ui.combatDock) {
+                            ui.combatDock.render(true);
+                        }
+                        
+                        // Send confirmation to the requesting player
+                        ui.notifications.info(`Phase set for ${combatant.name}: ${pendingPhaseChoice}`);
+                        
+                    } catch (error) {
+                        console.error("Error processing phase selection request:", error);
+                        // Clear the pending request even if there was an error
+                        try {
+                            await combatant.unsetFlag(MODULE_ID, "pendingPhaseChoice");
+                        } catch (clearError) {
+                            console.error("Error clearing pending phase choice:", clearError);
+                        }
+                    }
+                })();
+            }
+        });
+        
+        console.log("GM phase selection processor ready");
+        
+        // Watch for round advancement to re-prompt players
+        Hooks.on('updateCombat', (combat, updateData, options, userId) => {
+            console.log("=== COMBAT UPDATE DETECTED ===");
+            console.log("Update data:", updateData);
+            console.log("Current combat round:", combat.round);
+            console.log("Previous round in source:", combat._source?.round);
+            
+            // Check if the round advanced - be more explicit about detection
+            const newRound = updateData.round;
+            const oldRound = combat._source?.round || 0;
+            
+            if (newRound && newRound > oldRound) {
+                console.log("=== NEW ROUND DETECTED ===");
+                console.log("Old round:", oldRound);
+                console.log("New round:", newRound);
+                console.log("User who triggered:", game.users.get(userId)?.name);
+                
+                // Re-prompt all players for their phase choices
+                setTimeout(() => {
+                    console.log("Triggering phase re-prompting...");
+                    repromptAllPlayersForPhase(combat);
+                }, 500); // Reduced delay
+            } else {
+                console.log("Not a round advancement - skipping re-prompt");
+            }
+        });
+        
+        console.log("Round advancement watcher ready");
+    } else {
+        console.log("Player client - no GM processor needed");
+    }
+    
+    // All clients (GM and players) watch for phase selection prompts
+    Hooks.on('updateCombatant', (combatant, updateData, options, userId) => {
+        // Check if this combatant needs phase selection and is owned by current user
+        const needsPhaseSelection = updateData.flags?.[MODULE_ID]?.needsPhaseSelection;
+        if (needsPhaseSelection && !game.user.isGM) {
+            console.log("=== PHASE SELECTION NEEDED DETECTED ===");
+            
+            // Check if this combatant is owned by the current user
+            const isOwnedByCurrentUser = combatant.actor?.ownership?.[game.user.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+            
+            if (isOwnedByCurrentUser) {
+                console.log(`Prompting ${game.user.name} for phase choice for ${combatant.name} (new round)`);
+                
+                // Delay the prompt slightly to ensure the flag update has been processed
+                setTimeout(async () => {
+                    try {
+                        const phaseChoice = await promptPhaseSelection(combatant);
+                        if (phaseChoice) {
+                            // Player sends choice to GM via combatant flag update
+                            console.log("=== SETTING PHASE SELECTION REQUEST (NEW ROUND) ===");
+                            console.log("Phase choice:", phaseChoice);
+                            console.log("Combatant:", combatant.name);
+                            
+                            try {
+                                // Set a pending phase choice flag that the GM will detect
+                                await combatant.setFlag(MODULE_ID, "pendingPhaseChoice", phaseChoice);
+                                // Clear the needs selection flag
+                                await combatant.unsetFlag(MODULE_ID, "needsPhaseSelection");
+                                
+                                console.log("Phase selection request set successfully (new round)");
+                                
+                                // Show feedback to the player
+                                const phaseName = phaseChoice === "fast" ? 
+                                    game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
+                                    game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
+                                ui.notifications.info(game.i18n.format(`${MODULE_ID}.phaseSelection.notification`, { 
+                                    name: combatant.name, 
+                                    phase: phaseName 
+                                }));
+                                
+                            } catch (flagError) {
+                                console.error("Error setting phase choice flag:", flagError);
+                                console.log("Permission denied - trying alternative approach");
+                                
+                                // Fallback: Use socket communication as backup
+                                if (game.socket) {
+                                    console.log("Sending phase choice via socket as fallback");
+                                    game.socket.emit(`module.${MODULE_ID}`, {
+                                        type: "phaseChoice",
+                                        combatantId: combatant.id,
+                                        combatId: combatant.combat.id,
+                                        choice: phaseChoice,
+                                        userId: game.user.id,
+                                        userName: game.user.name
+                                    });
+                                    
+                                    // Show feedback to the player
+                                    const phaseName = phaseChoice === "fast" ? 
+                                        game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
+                                        game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
+                                    ui.notifications.info(`Phase choice sent to GM: ${phaseName}`);
+                                } else {
+                                    ui.notifications.error(`Could not set phase choice: ${flagError.message}`);
+                                }
+                            }
+                        } else {
+                            // Player cancelled, clear the needs selection flag
+                            await combatant.unsetFlag(MODULE_ID, "needsPhaseSelection");
+                        }
+                    } catch (error) {
+                        console.error("Error during new round phase selection:", error);
+                    }
+                }, 500);
+            }
+        }
+    });
+    
+    console.log("Phase selection prompt watcher ready");
+    
+    // Socket fallback handler for permission errors
+    if (game.user.isGM) {
+        game.socket.on(`module.${MODULE_ID}`, async (data) => {
+            console.log("=== SOCKET FALLBACK MESSAGE RECEIVED ===", data);
+            
+            if (data.type === "phaseChoice") {
                 const combat = game.combats.get(data.combatId);
                 const combatant = combat?.combatants.get(data.combatantId);
                 
                 if (combatant) {
-                    await combatant.setFlag(MODULE_ID, "phase", data.phase);
-                    await combatant.setFlag(MODULE_ID, "playerSelectedPhase", true);
-                    console.log(`GM processed phase choice: ${combatant.name} -> ${data.phase} (requested by user ${data.userId})`);
-                    
-                    // Refresh the combat dock if it exists
-                    if (ui.combatDock) {
-                        ui.combatDock.render(true);
+                    try {
+                        // GM processes the phase choice
+                        await combatant.setFlag(MODULE_ID, "phase", data.choice);
+                        await combatant.setFlag(MODULE_ID, "playerSelectedPhase", true);
+                        await combatant.unsetFlag(MODULE_ID, "needsPhaseSelection");
+                        
+                        console.log(`Socket fallback: Processed phase choice for ${combatant.name}: ${data.choice}`);
+                        
+                        // Notify the GM
+                        ui.notifications.info(`${data.userName} selected ${data.choice} phase for ${combatant.name} (via fallback)`);
+                        
+                    } catch (error) {
+                        console.error("Error processing socket fallback phase choice:", error);
                     }
                 }
-            } catch (error) {
-                console.error("Error processing player phase choice:", error);
             }
-        }
-    });
+        });
+        console.log("Socket fallback handler registered");
+    }
+    
+    // Test the system
+    setTimeout(() => {
+        console.log("=== TESTING PHASE SELECTION SYSTEM ===");
+        console.log("Current user:", game.user?.name);
+        console.log("Is GM:", game.user?.isGM);
+        console.log("System ready for phase selections");
+    }, 2000);
 
     // Ensure combat dock exists if there's an active combat
     ensureCombatDockExists();
@@ -103,8 +284,126 @@ Hooks.on('ready', () => {
         }
     }, 5000); // Check every 5 seconds
     
+    // Additional robustness: Clean up any orphaned pending phase choices on startup
+    if (game.user.isGM) {
+        setTimeout(() => {
+            console.log("=== CLEANING UP ORPHANED PHASE REQUESTS ===");
+            
+            // Check if there's an active combat before proceeding
+            if (game.combat && game.combat.combatants) {
+                console.log(`Checking ${game.combat.combatants.size} combatants for orphaned phase requests`);
+                game.combat.combatants.forEach(combatant => {
+                    const pendingChoice = combatant.getFlag(MODULE_ID, "pendingPhaseChoice");
+                    if (pendingChoice) {
+                        console.log(`Found orphaned phase request for ${combatant.name}: ${pendingChoice}`);
+                        // Process it immediately
+                        (async () => {
+                            try {
+                                await combatant.setFlag(MODULE_ID, "phase", pendingChoice);
+                                await combatant.setFlag(MODULE_ID, "playerSelectedPhase", true);
+                                await combatant.unsetFlag(MODULE_ID, "pendingPhaseChoice");
+                                console.log(`Processed orphaned phase request: ${combatant.name} -> ${pendingChoice}`);
+                            } catch (error) {
+                                console.error("Error processing orphaned phase request:", error);
+                            }
+                        })();
+                    }
+                });
+            } else {
+                console.log("No active combat found, skipping orphaned phase request cleanup");
+            }
+        }, 5000);
+    }
+    
     showWelcome();
 });
+
+// Function to re-prompt all players for their phase at the start of a new round
+async function repromptAllPlayersForPhase(combat) {
+    console.log("=== RE-PROMPTING ALL PLAYERS FOR PHASE ===");
+    console.log("Round:", combat.round);
+    
+    if (!combat || !combat.combatants) {
+        console.log("No valid combat found, skipping re-prompt");
+        return;
+    }
+    
+    // Set a flag to indicate we're in phase re-selection mode
+    await combat.setFlag(MODULE_ID, "awaitingPhaseSelection", true);
+    
+    const playerCombatants = combat.combatants.filter(combatant => {
+        const isPlayerCharacter = combatant.actor?.hasPlayerOwner;
+        const hasPlayerOwner = isPlayerCharacter && combatant.actor?.ownership;
+        
+        if (!hasPlayerOwner) return false;
+        
+        // Find the player who owns this combatant
+        const ownerIds = Object.entries(combatant.actor.ownership)
+            .filter(([userId, level]) => level === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER && userId !== "default")
+            .map(([userId]) => userId);
+            
+        return ownerIds.length > 0;
+    });
+    
+    console.log(`Found ${playerCombatants.length} player combatants to re-prompt`);
+    
+    // Clear existing phase selections and prompt each player
+    for (const combatant of playerCombatants) {
+        try {
+            console.log(`Re-prompting for ${combatant.name}`);
+            
+            // Clear the existing phase selection flags (GM has permission to do this)
+            await combatant.unsetFlag(MODULE_ID, "phase");
+            await combatant.unsetFlag(MODULE_ID, "playerSelectedPhase");
+            
+            // Set a flag to trigger the prompt for the owning player
+            await combatant.setFlag(MODULE_ID, "needsPhaseSelection", true);
+            
+            console.log(`Phase selection reset for ${combatant.name}`);
+            
+        } catch (error) {
+            console.error(`Error resetting phase for ${combatant.name}:`, error);
+            // Continue with other combatants even if one fails
+        }
+    }
+    
+    // Notify all players about the new round
+    ui.notifications.info(`Round ${combat.round} - Please select your phase!`);
+    
+    console.log("All players re-prompted for phase selection");
+}
+
+// Check if all players have selected their phases and clear the awaiting flag
+async function checkAllPlayersReady(combat) {
+    if (!combat || !game.user.isGM) return;
+    
+    const awaitingPhaseSelection = combat.getFlag(MODULE_ID, "awaitingPhaseSelection");
+    if (!awaitingPhaseSelection) return; // Not in re-selection mode
+    
+    console.log("=== CHECKING IF ALL PLAYERS ARE READY ===");
+    
+    const playerCombatants = combat.combatants.filter(combatant => {
+        return combatant.actor?.hasPlayerOwner;
+    });
+    
+    const playersWithPhases = playerCombatants.filter(combatant => {
+        return combatant.getFlag(MODULE_ID, "playerSelectedPhase");
+    });
+    
+    console.log(`Players ready: ${playersWithPhases.length}/${playerCombatants.length}`);
+    
+    if (playersWithPhases.length >= playerCombatants.length) {
+        console.log("All players have selected their phases - clearing awaiting flag");
+        await combat.unsetFlag(MODULE_ID, "awaitingPhaseSelection");
+        
+        // Refresh the combat dock to show the tracker
+        if (ui.combatDock) {
+            ui.combatDock.render(true);
+        }
+        
+        ui.notifications.info("All players have selected their phases. Combat tracker is now visible!");
+    }
+}
 
 // Set default phase for new combatants based on disposition, with player choice
 Hooks.on('createCombatant', async (combatant) => {
@@ -139,25 +438,52 @@ Hooks.on('createCombatant', async (combatant) => {
                 try {
                     const phaseChoice = await promptPhaseSelection(combatant);
                     if (phaseChoice) {
-                        // Player sends choice to GM via socket since they can't directly update combatant flags
-                        game.socket.emit("module.tides-of-battle", {
-                            type: "setPlayerPhase",
-                            combatantId: combatant.id,
-                            combatId: combatant.combat.id,
-                            phase: phaseChoice,
-                            userId: game.user.id
-                        });
+                        // Player sends choice to GM via combatant flag update
+                        console.log("=== SETTING PHASE SELECTION REQUEST ===");
+                        console.log("Phase choice:", phaseChoice);
+                        console.log("Combatant:", combatant.name);
                         
-                        console.log(`Player ${game.user.name} selected ${phaseChoice} phase for ${combatant.name}`);
-                        
-                        // Show feedback to the player
-                        const phaseName = phaseChoice === "fast" ? 
-                            game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
-                            game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
-                        ui.notifications.info(game.i18n.format(`${MODULE_ID}.phaseSelection.notification`, { 
-                            name: combatant.name, 
-                            phase: phaseName 
-                        }));
+                        try {
+                            // Set a pending phase choice flag that the GM will detect
+                            await combatant.setFlag(MODULE_ID, "pendingPhaseChoice", phaseChoice);
+                            
+                            console.log("Phase selection request set successfully");
+                            console.log(`Player ${game.user.name} requested ${phaseChoice} phase for ${combatant.name}`);
+                            
+                            // Show feedback to the player
+                            const phaseName = phaseChoice === "fast" ? 
+                                game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
+                                game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
+                            ui.notifications.info(game.i18n.format(`${MODULE_ID}.phaseSelection.notification`, { 
+                                name: combatant.name, 
+                                phase: phaseName 
+                            }));
+                            
+                        } catch (flagError) {
+                            console.error("Error setting phase choice flag:", flagError);
+                            console.log("Permission denied - trying socket fallback");
+                            
+                            // Fallback: Use socket communication as backup
+                            if (game.socket) {
+                                console.log("Sending phase choice via socket as fallback");
+                                game.socket.emit(`module.${MODULE_ID}`, {
+                                    type: "phaseChoice",
+                                    combatantId: combatant.id,
+                                    combatId: combatant.combat.id,
+                                    choice: phaseChoice,
+                                    userId: game.user.id,
+                                    userName: game.user.name
+                                });
+                                
+                                // Show feedback to the player
+                                const phaseName = phaseChoice === "fast" ? 
+                                    game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
+                                    game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
+                                ui.notifications.info(`Phase choice sent to GM: ${phaseName}`);
+                            } else {
+                                ui.notifications.error(`Could not set phase choice: ${flagError.message}`);
+                            }
+                        }
                     }
                 } catch (error) {
                     console.error("Error during phase selection:", error);
