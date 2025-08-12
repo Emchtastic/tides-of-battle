@@ -29,13 +29,49 @@ Hooks.on('createCombat', (combat) => {
     }
 });
 
-// Set default phase for new combatants based on disposition
+// Set default phase for new combatants based on disposition, with player choice
 Hooks.on('createCombatant', async (combatant) => {
     if (!combatant.getFlag(MODULE_ID, "phase")) {
         let defaultPhase = "fast"; // Default fallback
         
-        // Assign phase based on token disposition
+        // Check if this is a player character that the current user owns
+        const isPlayerCharacter = combatant.actor?.hasPlayerOwner;
+        const isOwnedByCurrentUser = combatant.actor?.isOwner;
         const disposition = combatant.token?.disposition;
+        
+        console.log(`Processing new combatant: ${combatant.name}`);
+        console.log(`- Is player character: ${isPlayerCharacter}`);
+        console.log(`- Is owned by current user: ${isOwnedByCurrentUser}`);
+        console.log(`- Disposition: ${disposition}`);
+        
+        if (isPlayerCharacter && isOwnedByCurrentUser) {
+            // This is a player character owned by the current user - prompt for phase choice
+            console.log(`Prompting ${game.user.name} for phase choice for ${combatant.name}`);
+            
+            try {
+                const phaseChoice = await promptPhaseSelection(combatant);
+                if (phaseChoice) {
+                    await combatant.setFlag(MODULE_ID, "phase", phaseChoice);
+                    await combatant.setFlag(MODULE_ID, "playerSelectedPhase", true);
+                    console.log(`Player ${game.user.name} selected ${phaseChoice} phase for ${combatant.name}`);
+                    
+                    // Show feedback to the player
+                    const phaseName = phaseChoice === "fast" ? 
+                        game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
+                        game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
+                    ui.notifications.info(game.i18n.format(`${MODULE_ID}.phaseSelection.notification`, { 
+                        name: combatant.name, 
+                        phase: phaseName 
+                    }));
+                    return;
+                }
+            } catch (error) {
+                console.error("Error during phase selection:", error);
+                // Fall through to automatic assignment
+            }
+        }
+        
+        // Automatic phase assignment for NPCs, unowned characters, or if dialog was cancelled
         if (disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE) {
             defaultPhase = "enemy";
         } else if (disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY) {
@@ -45,9 +81,62 @@ Hooks.on('createCombatant', async (combatant) => {
         }
         
         await combatant.setFlag(MODULE_ID, "phase", defaultPhase);
-        console.log(`Assigned ${combatant.name} (${disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE ? 'Hostile' : disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY ? 'Friendly' : disposition === CONST.TOKEN_DISPOSITIONS.NEUTRAL ? 'Neutral' : 'Unknown'}) to ${defaultPhase} phase`);
+        console.log(`Auto-assigned ${combatant.name} (${disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE ? 'Hostile' : disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY ? 'Friendly' : disposition === CONST.TOKEN_DISPOSITIONS.NEUTRAL ? 'Neutral' : 'Unknown'}) to ${defaultPhase} phase`);
     }
 });
+
+// Function to prompt players for phase selection
+async function promptPhaseSelection(combatant) {
+    return new Promise((resolve) => {
+        const dialog = new Dialog({
+            title: game.i18n.format(`${MODULE_ID}.phaseSelection.title`, { name: combatant.name }),
+            content: `
+                <div style="text-align: center; margin: 20px 0;">
+                    <h3>${game.i18n.localize(`${MODULE_ID}.phaseSelection.choosePhase`)}</h3>
+                    <p>${game.i18n.format(`${MODULE_ID}.phaseSelection.description`, { name: combatant.name })}</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 15px; margin: 20px 0;">
+                    <div style="border: 2px solid #4a90e2; border-radius: 8px; padding: 15px; background: rgba(74, 144, 226, 0.1);">
+                        <h4 style="margin: 0 0 10px 0; color: #4a90e2;">${game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.title`)}</h4>
+                        <p style="margin: 0; font-size: 14px;">
+                            ${game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.description`)}
+                        </p>
+                    </div>
+                    <div style="border: 2px solid #e74c3c; border-radius: 8px; padding: 15px; background: rgba(231, 76, 60, 0.1);">
+                        <h4 style="margin: 0 0 10px 0; color: #e74c3c;">${game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.title`)}</h4>
+                        <p style="margin: 0; font-size: 14px;">
+                            ${game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.description`)}
+                        </p>
+                    </div>
+                </div>
+                <p style="text-align: center; font-style: italic; color: #666; margin-top: 20px;">
+                    ${game.i18n.localize(`${MODULE_ID}.phaseSelection.advice`)}
+                </p>
+            `,
+            buttons: {
+                fast: {
+                    icon: '<i class="fas fa-bolt"></i>',
+                    label: game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`),
+                    callback: () => resolve("fast")
+                },
+                slow: {
+                    icon: '<i class="fas fa-hourglass-half"></i>',
+                    label: game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`),
+                    callback: () => resolve("slow")
+                },
+                cancel: {
+                    icon: '<i class="fas fa-times"></i>',
+                    label: "Cancel",
+                    callback: () => resolve(null)
+                }
+            },
+            default: "fast",
+            close: () => resolve(null)
+        });
+        
+        dialog.render(true);
+    });
+}
 
 Hooks.on('updateCombat', (combat, updates) => {
     if(updates.active || updates.scene === null) {

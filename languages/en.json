@@ -223,6 +223,23 @@
             "error": "Error: You must provide a name and an image for the event.",
             "expired": "Event %n has expired."
         },
+        "phaseSelection": {
+            "title": "Choose Phase for {name}",
+            "description": "This choice will determine when {name} acts and how many actions they can take.",
+            "choosePhase": "Choose your phase for this round:",
+            "fastPhase": {
+                "title": "⚡ Fast Phase",
+                "description": "• Act early in the round<br>• Take <strong>1 action</strong> this round<br>• Good for quick strikes, positioning, or simple actions",
+                "button": "Fast Phase (1 action)"
+            },
+            "slowPhase": {
+                "title": "🐢 Slow Phase", 
+                "description": "• Act later in the round<br>• Take <strong>2 actions</strong> this round<br>• Good for complex maneuvers, multiple attacks, or casting spells",
+                "button": "Slow Phase (2 actions)"
+            },
+            "advice": "Choose wisely - this affects your turn order and available actions!",
+            "notification": "{name} will act in the {phase} phase this round."
+        },
         "deleteEffectTitle": "Delete Effect",
         "deleteEffectContent": "Are you sure you want to delete the effect "
     }
