@@ -165,13 +165,10 @@ export class CombatantPortrait {
         const tooltip = await foundry.applications.handlebars.renderTemplate("modules/tides-of-battle/templates/combatant-tooltip.hbs", { ...data });
         this.element.innerHTML = template;
         this.element.setAttribute("data-tooltip", tooltip);
-        const direction = game.settings.get(MODULE_ID, "direction");
-        if (direction == "column") {
-            const alignment = game.settings.get(MODULE_ID, "alignment");
-            this.element.setAttribute("data-tooltip-direction", alignment == "left" ? TooltipManager.TOOLTIP_DIRECTIONS.RIGHT : TooltipManager.TOOLTIP_DIRECTIONS.LEFT);
-        } else {
-            this.element.setAttribute("data-tooltip-direction", "");
-        }
+        
+        // Set tooltip direction based on alignment (simplified - no carousel)
+        const alignment = game.settings.get(MODULE_ID, "alignment");
+        this.element.setAttribute("data-tooltip-direction", alignment == "left" ? TooltipManager.TOOLTIP_DIRECTIONS.RIGHT : TooltipManager.TOOLTIP_DIRECTIONS.LEFT);
 
         this.element.classList.toggle("active", data.css.includes("active"));
         this.element.classList.toggle("visible", data.css.includes("hidden"));
@@ -179,16 +176,24 @@ export class CombatantPortrait {
         this.element.classList.toggle("action-taken", data.css.includes("action-taken"));
         this.element.style.borderBottomColor = this.getBorderColor(this.token?.document);
         
+        // Remove existing click listeners to prevent duplicates
+        if (this._actionClickHandler) {
+            this.element.removeEventListener("click", this._actionClickHandler);
+        }
+        
         // Add GM-only click handler for action tracking
         if (game.user.isGM) {
-            this.element.addEventListener("click", async (event) => {
+            this._actionClickHandler = async (event) => {
                 // Don't trigger on action button clicks
                 if (event.target.classList.contains("action") || event.target.closest(".action")) return;
                 
                 event.stopPropagation();
+                console.log("Portrait clicked for combatant:", this.combatant.name);
                 const currentFlag = this.combatant.getFlag(MODULE_ID, "actionTaken") || false;
+                console.log("Current action flag:", currentFlag, "Setting to:", !currentFlag);
                 await this.combatant.setFlag(MODULE_ID, "actionTaken", !currentFlag);
-            });
+            };
+            this.element.addEventListener("click", this._actionClickHandler);
         }
         
         this.element.querySelectorAll(".action").forEach((action) => {
@@ -425,6 +430,10 @@ export class CombatantPortrait {
     }
 
     destroy() {
+        // Clean up event listeners
+        if (this._actionClickHandler) {
+            this.element?.removeEventListener("click", this._actionClickHandler);
+        }
         this.element?.remove();
     }
 }
