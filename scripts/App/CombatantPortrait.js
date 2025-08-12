@@ -264,6 +264,11 @@ export class CombatantPortrait {
     async setAsActiveCombatant() {
         console.log("Right-click detected - setting as active combatant:", this.combatant.name);
         
+        // Debug token access
+        console.log("Combatant token:", this.combatant.token);
+        console.log("Token object:", this.combatant.token?.object);
+        console.log("Canvas tokens:", canvas.tokens);
+        
         // Clear any existing active combatant in this combat
         const currentActive = this.combat.getFlag(MODULE_ID, "activeCombatant");
         if (currentActive) {
@@ -279,8 +284,19 @@ export class CombatantPortrait {
         await this.combat.setFlag(MODULE_ID, "activeCombatant", this.combatant.id);
         
         // Add rotating die animation to the token on the map
-        if (this.combatant.token?.object) {
-            this.addRotatingDie(this.combatant.token.object);
+        const tokenObject = this.combatant.token?.object;
+        console.log("Attempting to add die to token object:", tokenObject);
+        
+        if (tokenObject) {
+            this.addRotatingDie(tokenObject);
+        } else {
+            console.warn("No token object found for combatant:", this.combatant.name);
+            // Try alternative method to find token
+            const foundToken = canvas.tokens.placeables.find(t => t.document.id === this.combatant.token?.id);
+            console.log("Alternative token search result:", foundToken);
+            if (foundToken) {
+                this.addRotatingDie(foundToken);
+            }
         }
         
         // Refresh all portraits to update visual states
@@ -293,37 +309,78 @@ export class CombatantPortrait {
     }
 
     addRotatingDie(tokenObject) {
+        console.log("addRotatingDie called with:", tokenObject);
+        
         // Remove any existing die first
         this.clearRotatingDie(tokenObject);
         
-        // Create rotating die effect similar to Foundry's turn indicator
-        const die = new PIXI.Sprite(PIXI.Texture.from("icons/dice/d20black.svg"));
-        die.name = "activeIndicator";
-        die.anchor.set(0.5);
-        
-        // Position behind the token
-        die.x = tokenObject.w / 2;
-        die.y = tokenObject.h / 2;
-        die.width = tokenObject.w * 0.6;
-        die.height = tokenObject.h * 0.6;
-        die.alpha = 0.8;
-        die.zIndex = -1;
-        
-        // Add to token
-        tokenObject.addChild(die);
-        
-        // Create rotation animation
-        const ticker = (delta) => {
-            if (die.parent) {
-                die.rotation += 0.02 * delta;
-            } else {
-                // Remove ticker if die is no longer in scene
-                canvas.app.ticker.remove(ticker);
+        try {
+            // Try multiple die texture options
+            let texture;
+            const textureOptions = [
+                "icons/dice/d20black.svg",
+                "icons/dice/d20.svg", 
+                "icons/dice/d12black.svg",
+                "icons/svg/d20-grey.svg"
+            ];
+            
+            for (const texturePath of textureOptions) {
+                try {
+                    texture = PIXI.Texture.from(texturePath);
+                    console.log("Successfully loaded texture:", texturePath);
+                    break;
+                } catch (e) {
+                    console.warn("Failed to load texture:", texturePath, e);
+                }
             }
-        };
-        
-        canvas.app.ticker.add(ticker);
-        console.log("Added rotating die indicator to", this.combatant.name);
+            
+            if (!texture) {
+                console.error("No valid texture found for rotating die");
+                return;
+            }
+            
+            // Create rotating die effect
+            const die = new PIXI.Sprite(texture);
+            die.name = "activeIndicator";
+            die.anchor.set(0.5);
+            
+            // Position behind the token
+            die.x = tokenObject.w / 2;
+            die.y = tokenObject.h / 2;
+            die.width = Math.max(tokenObject.w * 0.6, 32); // Minimum 32px size
+            die.height = Math.max(tokenObject.h * 0.6, 32);
+            die.alpha = 0.8;
+            die.zIndex = -1;
+            
+            console.log("Die properties:", {
+                x: die.x,
+                y: die.y, 
+                width: die.width,
+                height: die.height,
+                alpha: die.alpha
+            });
+            
+            // Add to token
+            tokenObject.addChild(die);
+            console.log("Die added to token, children count:", tokenObject.children.length);
+            
+            // Create rotation animation
+            const ticker = (delta) => {
+                if (die.parent) {
+                    die.rotation += 0.02 * delta;
+                } else {
+                    // Remove ticker if die is no longer in scene
+                    canvas.app.ticker.remove(ticker);
+                    console.log("Removed ticker as die no longer has parent");
+                }
+            };
+            
+            canvas.app.ticker.add(ticker);
+            console.log("Added rotating die indicator to", this.combatant.name);
+            
+        } catch (error) {
+            console.error("Error creating rotating die:", error);
+        }
     }
 
     clearRotatingDie(tokenObject) {
