@@ -23,31 +23,6 @@ Hooks.once('init', function () {
 
 Hooks.once('setup', registerSettings);
 
-// Socket handler for player phase choices
-game.socket.on("module.tides-of-battle", async (data) => {
-    if (!game.user.isGM) return; // Only GM should handle these messages
-    
-    if (data.type === "setPlayerPhase") {
-        try {
-            const combat = game.combats.get(data.combatId);
-            const combatant = combat?.combatants.get(data.combatantId);
-            
-            if (combatant) {
-                await combatant.setFlag(MODULE_ID, "phase", data.phase);
-                await combatant.setFlag(MODULE_ID, "playerSelectedPhase", true);
-                console.log(`GM processed phase choice: ${combatant.name} -> ${data.phase} (requested by user ${data.userId})`);
-                
-                // Refresh the combat dock if it exists
-                if (ui.combatDock) {
-                    ui.combatDock.setupCombatants();
-                }
-            }
-        } catch (error) {
-            console.error("Error processing player phase choice:", error);
-        }
-    }
-});
-
 Hooks.on('createCombat', (combat) => {
     console.log("createCombat hook triggered for combat:", combat.id);
     if (game.combat === combat) {
@@ -56,6 +31,38 @@ Hooks.on('createCombat', (combat) => {
     } else {
         console.log("Combat is not the active combat, skipping dock creation");
     }
+});
+
+Hooks.on('ready', () => {
+    // Socket handler for player phase choices - only set up when game is ready
+    game.socket.on("module.tides-of-battle", async (data) => {
+        if (!game.user.isGM) return; // Only GM should handle these messages
+        
+        if (data.type === "setPlayerPhase") {
+            try {
+                const combat = game.combats.get(data.combatId);
+                const combatant = combat?.combatants.get(data.combatantId);
+                
+                if (combatant) {
+                    await combatant.setFlag(MODULE_ID, "phase", data.phase);
+                    await combatant.setFlag(MODULE_ID, "playerSelectedPhase", true);
+                    console.log(`GM processed phase choice: ${combatant.name} -> ${data.phase} (requested by user ${data.userId})`);
+                    
+                    // Refresh the combat dock if it exists
+                    if (ui.combatDock) {
+                        ui.combatDock.setupCombatants();
+                    }
+                }
+            } catch (error) {
+                console.error("Error processing player phase choice:", error);
+            }
+        }
+    });
+
+    if(game.combat?.active && !ui.combatDock && game.settings.get("core", "noCanvas")) {
+        new CONFIG.combatTrackerDock.CombatDock(game.combat).render(true);
+    }
+    showWelcome();
 });
 
 // Set default phase for new combatants based on disposition, with player choice
