@@ -26,10 +26,14 @@ Hooks.once('setup', registerSettings);
 Hooks.on('createCombat', (combat) => {
     console.log("createCombat hook triggered for combat:", combat.id);
     
-    // Set initial UI state to preparation for new combats
+    // Set initial state for new combats
     if (game.user.isGM) {
-        combat.setFlag(MODULE_ID, "uiState", "preparation").then(() => {
-            console.log("Initial UI state set to preparation");
+        Promise.all([
+            combat.setFlag(MODULE_ID, "uiState", "preparation"),
+            combat.setFlag(MODULE_ID, "currentRound", 1),
+            combat.setFlag(MODULE_ID, "currentPhase", "fast")
+        ]).then(() => {
+            console.log("Initial combat state set: preparation, round 1, fast phase");
         });
     }
     
@@ -235,10 +239,11 @@ Hooks.on('ready', () => {
             // Check specific flags that affect UI
             const uiStateChanged = flagsChanged.hasOwnProperty('uiState');
             const phaseChanged = flagsChanged.hasOwnProperty('currentPhase');
+            const roundChanged = flagsChanged.hasOwnProperty('currentRound');
             const awaitingChanged = flagsChanged.hasOwnProperty('awaitingPhaseSelection');
             const combatStartedChanged = flagsChanged.hasOwnProperty('combatStarted');
             
-            if (uiStateChanged || phaseChanged || awaitingChanged || combatStartedChanged) {
+            if (uiStateChanged || phaseChanged || roundChanged || awaitingChanged || combatStartedChanged) {
                 console.log("UI-affecting flags changed - refreshing combat dock");
                 
                 // Refresh the combat dock for all clients
@@ -252,9 +257,12 @@ Hooks.on('ready', () => {
                     console.log("Combat is now active - all players ready!");
                 }
                 
-                // Log phase changes for debugging
+                // Log phase and round changes for debugging
                 if (phaseChanged) {
                     console.log(`Phase changed to: ${flagsChanged.currentPhase}`);
+                }
+                if (roundChanged) {
+                    console.log(`Round changed to: ${flagsChanged.currentRound}`);
                 }
             }
         }
@@ -431,9 +439,10 @@ async function checkAllPlayersReady(combat) {
             if (ui.combatDock && ui.combatDock.finishRoundAdvancement) {
                 await ui.combatDock.finishRoundAdvancement();
             } else {
-                // Fallback: manually set the state and phase
+                // Fallback: manually set the state, round and phase
                 await combat.setFlag(MODULE_ID, "uiState", "active");
-                await combat.nextRound();
+                const newRound = (combat.getFlag(MODULE_ID, "currentRound") ?? 1) + 1;
+                await combat.setFlag(MODULE_ID, "currentRound", newRound);
                 await combat.setFlag(MODULE_ID, "currentPhase", "fast");
                 console.log("Fallback round advancement completed");
             }

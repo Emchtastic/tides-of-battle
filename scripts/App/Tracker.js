@@ -62,7 +62,18 @@ export class CombatDock extends Application {
     }
 
     get currentRound() {
-        return this.combat?.round || 1;
+        // Use our custom round tracking instead of Foundry's built-in round
+        return this.combat?.getFlag(MODULE_ID, "currentRound") ?? 1;
+    }
+
+    async setRound(round) {
+        if (!this.combat) return;
+        console.log("setRound called with round:", round);
+        await this.combat.setFlag(MODULE_ID, "currentRound", round);
+        console.log("Round flag set, triggering full re-render for all clients");
+        
+        // Trigger a full re-render for all clients to see the round change
+        this.render(true);
     }
 
     async setPhase(phase) {
@@ -191,9 +202,10 @@ export class CombatDock extends Application {
         await this.combat.unsetFlag(MODULE_ID, "needsPhaseSelection");
         console.log("Old flags cleared - all clients should refresh");
         
-        // Now advance to the next round
-        await this.combat.nextRound();
-        console.log("Round advanced to:", this.combat.round);
+        // Now advance to the next round using our custom tracking
+        const newRound = this.currentRound + 1;
+        await this.setRound(newRound);
+        console.log("Round advanced to:", newRound);
         
         // Set the phase to FAST (start of new round)
         await this.setPhase(PHASES.FAST);
@@ -209,9 +221,10 @@ export class CombatDock extends Application {
         const currentPhaseIndex = PHASE_ORDER.indexOf(this.currentPhase);
         const prevPhaseIndex = currentPhaseIndex === 0 ? PHASE_ORDER.length - 1 : currentPhaseIndex - 1;
         
-        // If we're going from FAST back to SLOW, decrement the round
+        // If we're going from FAST back to SLOW, decrement the round using our custom tracking
         if (this.currentPhase === PHASES.FAST && PHASE_ORDER[prevPhaseIndex] === PHASES.SLOW) {
-            await this.combat.previousRound();
+            const newRound = Math.max(1, this.currentRound - 1); // Don't go below round 1
+            await this.setRound(newRound);
         }
         
         await this.setPhase(PHASE_ORDER[prevPhaseIndex]);
@@ -335,7 +348,7 @@ export class CombatDock extends Application {
             pendingPlayers,
             currentPhase: this.currentPhase,
             phaseDisplayName: this.getPhaseDisplayName(this.currentPhase),
-            currentRound: this.currentRound,
+            currentRound: uiState === "selecting" ? this.currentRound + 1 : this.currentRound,
         };
         
         console.log("Template data:", data);
@@ -600,10 +613,12 @@ export class CombatDock extends Application {
                         this.nextPhase();
                         break;
                     case "previous-round":
-                        this.combat.previousRound();
+                        const prevRound = Math.max(1, this.currentRound - 1);
+                        this.setRound(prevRound);
                         break;
                     case "next-round":
-                        this.combat.nextRound();
+                        const nextRound = this.currentRound + 1;
+                        this.setRound(nextRound);
                         break;
                     case "end-combat":
                         this.combat.endCombat();
