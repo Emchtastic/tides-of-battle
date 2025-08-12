@@ -127,6 +127,14 @@ Hooks.on('createCombatant', async (combatant) => {
         }
         
         // Automatic phase assignment for NPCs, unowned characters, or if dialog was cancelled
+        // Only the GM or the combatant owner should set the flag to avoid permission errors
+        const canUpdateCombatant = game.user.isGM || combatant.isOwner;
+        
+        if (!canUpdateCombatant) {
+            console.log(`User ${game.user.name} cannot update combatant ${combatant.name}, skipping phase assignment`);
+            return;
+        }
+        
         if (disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE) {
             defaultPhase = "enemy";
         } else if (disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY) {
