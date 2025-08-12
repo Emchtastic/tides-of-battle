@@ -40,6 +40,13 @@ export class CombatDock extends Application {
     }
 
     get sortedCombatants() {
+        const allCombatants = Array.from(this.combat.combatants.contents.sort(this.combat._sortCombatants));
+        // Filter combatants by current phase
+        return allCombatants.filter(combatant => this.getCombatantPhase(combatant) === this.currentPhase);
+    }
+
+    get allCombatants() {
+        // Getter for all combatants regardless of phase (useful for other operations)
         return Array.from(this.combat.combatants.contents.sort(this.combat._sortCombatants));
     }
 
@@ -76,7 +83,11 @@ export class CombatDock extends Application {
             roundDisplay.textContent = `Round ${this.currentRound}`;
         }
         
+        // Refresh combatants to show only those in the current phase
+        this.setupCombatants();
+        
         console.log("Phase display updated to:", this.getPhaseDisplayName(this.currentPhase), "Round", this.currentRound);
+        console.log("Combatants in current phase:", this.sortedCombatants.length);
     }
 
     async nextPhase() {
