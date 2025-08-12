@@ -426,6 +426,12 @@ export class CombatDock extends Application {
         this.setupCombatants();
         
         this.appendHtml();
+        
+        // Always remove hidden class to make dock visible
+        setTimeout(() => {
+            this.element[0].classList.remove("hidden");
+        }, 100);
+        
         // Ensure phase display is properly initialized
         this.updatePhaseDisplay();
         this.element[0].querySelectorAll(".buttons-container i, .begin-combat-btn, .create-encounter-btn").forEach((element) => {

@@ -1,5 +1,5 @@
 :root {
-  -size: 100px;
+  --combatant-portrait-size: 100px;
   --combatant-portrait-aspect: 1.5;
   --combatant-portrait-border-radius: 0%;
   --combatant-portrait-margin: 0 calc(var(--combatant-portrait-size) * 0.1);
