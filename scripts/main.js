@@ -49,13 +49,25 @@ game.socket.on("module.tides-of-battle", async (data) => {
 });
 
 Hooks.on('createCombat', (combat) => {
+    console.log("createCombat hook triggered for combat:", combat.id);
     if (game.combat === combat) {
+        console.log("Creating new CombatDock for combat:", combat.id);
         new CONFIG.combatTrackerDock.CombatDock(combat).render(true);
+    } else {
+        console.log("Combat is not the active combat, skipping dock creation");
     }
 });
 
 // Set default phase for new combatants based on disposition, with player choice
 Hooks.on('createCombatant', async (combatant) => {
+    console.log("createCombatant hook triggered for:", combatant.name, "in combat:", combatant.combat?.id);
+    
+    // Check if the combat dock exists, if not and this is the active combat, create it
+    if (!ui.combatDock && combatant.combat === game.combat) {
+        console.log("No combat dock exists but this is active combat, creating one");
+        new CONFIG.combatTrackerDock.CombatDock(combatant.combat).render(true);
+    }
+    
     if (!combatant.getFlag(MODULE_ID, "phase")) {
         let defaultPhase = "fast"; // Default fallback
         
@@ -74,34 +86,37 @@ Hooks.on('createCombatant', async (combatant) => {
             // This is a player character owned by the current user (not GM) - prompt for phase choice
             console.log(`Prompting ${game.user.name} for phase choice for ${combatant.name}`);
             
-            try {
-                const phaseChoice = await promptPhaseSelection(combatant);
-                if (phaseChoice) {
-                    // Player sends choice to GM via socket since they can't directly update combatant flags
-                    game.socket.emit("module.tides-of-battle", {
-                        type: "setPlayerPhase",
-                        combatantId: combatant.id,
-                        combatId: combatant.combat.id,
-                        phase: phaseChoice,
-                        userId: game.user.id
-                    });
-                    
-                    console.log(`Player ${game.user.name} selected ${phaseChoice} phase for ${combatant.name}`);
-                    
-                    // Show feedback to the player
-                    const phaseName = phaseChoice === "fast" ? 
-                        game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
-                        game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
-                    ui.notifications.info(game.i18n.format(`${MODULE_ID}.phaseSelection.notification`, { 
-                        name: combatant.name, 
-                        phase: phaseName 
-                    }));
-                    return;
+            // Delay the prompt slightly to ensure the combat tracker has time to render
+            setTimeout(async () => {
+                try {
+                    const phaseChoice = await promptPhaseSelection(combatant);
+                    if (phaseChoice) {
+                        // Player sends choice to GM via socket since they can't directly update combatant flags
+                        game.socket.emit("module.tides-of-battle", {
+                            type: "setPlayerPhase",
+                            combatantId: combatant.id,
+                            combatId: combatant.combat.id,
+                            phase: phaseChoice,
+                            userId: game.user.id
+                        });
+                        
+                        console.log(`Player ${game.user.name} selected ${phaseChoice} phase for ${combatant.name}`);
+                        
+                        // Show feedback to the player
+                        const phaseName = phaseChoice === "fast" ? 
+                            game.i18n.localize(`${MODULE_ID}.phaseSelection.fastPhase.button`) : 
+                            game.i18n.localize(`${MODULE_ID}.phaseSelection.slowPhase.button`);
+                        ui.notifications.info(game.i18n.format(`${MODULE_ID}.phaseSelection.notification`, { 
+                            name: combatant.name, 
+                            phase: phaseName 
+                        }));
+                    }
+                } catch (error) {
+                    console.error("Error during phase selection:", error);
                 }
-            } catch (error) {
-                console.error("Error during phase selection:", error);
-                // Fall through to automatic assignment
-            }
+            }, 500); // Half second delay to let UI settle
+            
+            // Don't return here - let the automatic assignment happen first, then the player can override it
         }
         
         // Automatic phase assignment for NPCs, unowned characters, or if dialog was cancelled
