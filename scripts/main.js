@@ -164,10 +164,17 @@ Hooks.on('createCombatant', async (combatant) => {
                 }
             }, 500); // Half second delay to let UI settle
             
-            // Don't return here - let the automatic assignment happen first, then the player can override it
+            // For player characters, we only prompt - never auto-assign
+            return;
         }
         
-        // Automatic phase assignment for NPCs, unowned characters, or if dialog was cancelled
+        // Auto-assignment is ONLY for NPCs (non-player characters)
+        if (isPlayerCharacter) {
+            console.log(`${combatant.name} is a player character but no dialog shown (likely GM-owned token). Skipping auto-assignment - players must choose their own phases.`);
+            return;
+        }
+        
+        // Only auto-assign phases to NPCs
         // Only the GM or the combatant owner should set the flag to avoid permission errors
         const canUpdateCombatant = game.user.isGM || combatant.isOwner;
         
@@ -176,15 +183,15 @@ Hooks.on('createCombatant', async (combatant) => {
             return;
         }
         
-        // Check if phase already set by player to avoid overriding player choices
+        // Check if phase already set to avoid duplicate assignments
         const existingPhase = combatant.getFlag(MODULE_ID, "phase");
-        const alreadySelected = combatant.getFlag(MODULE_ID, "playerSelectedPhase");
         
-        if (existingPhase && alreadySelected) {
-            console.log(`${combatant.name} already has phase selected by player: ${existingPhase}, skipping auto-assignment`);
+        if (existingPhase) {
+            console.log(`${combatant.name} already has phase assigned: ${existingPhase}, skipping auto-assignment`);
             return;
         }
         
+        // Auto-assign phase for NPCs based on disposition
         if (disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE) {
             defaultPhase = "enemy";
         } else if (disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY) {
@@ -194,7 +201,7 @@ Hooks.on('createCombatant', async (combatant) => {
         }
         
         await combatant.setFlag(MODULE_ID, "phase", defaultPhase);
-        console.log(`Auto-assigned ${combatant.name} (${disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE ? 'Hostile' : disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY ? 'Friendly' : disposition === CONST.TOKEN_DISPOSITIONS.NEUTRAL ? 'Neutral' : 'Unknown'}) to ${defaultPhase} phase`);
+        console.log(`Auto-assigned NPC ${combatant.name} (${disposition === CONST.TOKEN_DISPOSITIONS.HOSTILE ? 'Hostile' : disposition === CONST.TOKEN_DISPOSITIONS.FRIENDLY ? 'Friendly' : disposition === CONST.TOKEN_DISPOSITIONS.NEUTRAL ? 'Neutral' : 'Unknown'}) to ${defaultPhase} phase`);
     }
 });
 
