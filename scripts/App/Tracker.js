@@ -40,6 +40,7 @@ export class CombatDock extends Application {
     }
 
     get sortedCombatants() {
+        if (!this.combat) return [];
         const allCombatants = Array.from(this.combat.combatants.contents.sort(this.combat._sortCombatants));
         // Filter combatants by current phase
         return allCombatants.filter(combatant => this.getCombatantPhase(combatant) === this.currentPhase);
@@ -47,6 +48,7 @@ export class CombatDock extends Application {
 
     get allCombatants() {
         // Getter for all combatants regardless of phase (useful for other operations)
+        if (!this.combat) return [];
         return Array.from(this.combat.combatants.contents.sort(this.combat._sortCombatants));
     }
 
@@ -371,7 +373,9 @@ export class CombatDock extends Application {
         // For horizontal layout, auto-size based on available width
         const maxSpace = document.getElementById("ui-top").getBoundingClientRect().width * 0.9;
         const combatantCount = this.sortedCombatants.length;
-        const portraitSize = Math.min(max, Math.floor(maxSpace / combatantCount));
+        
+        // Avoid division by zero when no combatants
+        const portraitSize = combatantCount > 0 ? Math.min(max, Math.floor(maxSpace / combatantCount)) : max;
         
         document.documentElement.style.setProperty("--combatant-portrait-size", portraitSize / 1.2 + "px");
     }
