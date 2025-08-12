@@ -60,8 +60,23 @@ export class CombatDock extends Application {
         if (!this.combat) return;
         console.log("setPhase called with phase:", phase);
         await this.combat.setFlag(MODULE_ID, "currentPhase", phase);
-        console.log("Phase flag set, calling render");
-        this.render(true);
+        console.log("Phase flag set, updating phase display");
+        this.updatePhaseDisplay();
+    }
+
+    updatePhaseDisplay() {
+        // Update just the phase display without re-rendering the entire application
+        const phaseTitle = this.element[0]?.querySelector('.phase-title');
+        const roundDisplay = this.element[0]?.querySelector('.round-display');
+        
+        if (phaseTitle) {
+            phaseTitle.textContent = this.getPhaseDisplayName(this.currentPhase);
+        }
+        if (roundDisplay) {
+            roundDisplay.textContent = `Round ${this.currentRound}`;
+        }
+        
+        console.log("Phase display updated to:", this.getPhaseDisplayName(this.currentPhase), "Round", this.currentRound);
     }
 
     async nextPhase() {
@@ -263,6 +278,8 @@ export class CombatDock extends Application {
         super.activateListeners(html);
         this.setupCombatants();
         this.appendHtml();
+        // Ensure phase display is properly initialized
+        this.updatePhaseDisplay();
         this.element[0].querySelectorAll(".buttons-container i").forEach((i) => {
             i.addEventListener("click", (e) => {
                 const action = e.currentTarget.dataset.action;
