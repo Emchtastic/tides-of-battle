@@ -50,6 +50,16 @@
             }
         }
 
+        &.action-taken {
+            filter: grayscale(1) brightness(0.7);
+            opacity: 0.6;
+            cursor: pointer;
+            
+            &:hover {
+                opacity: 0.8;
+            }
+        }
+
         &:not(.active) .portrait-pass {
             display: none;
         }

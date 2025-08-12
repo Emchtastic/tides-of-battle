@@ -176,7 +176,21 @@ export class CombatantPortrait {
         this.element.classList.toggle("active", data.css.includes("active"));
         this.element.classList.toggle("visible", data.css.includes("hidden"));
         this.element.classList.toggle("defeated", data.css.includes("defeated"));
+        this.element.classList.toggle("action-taken", data.css.includes("action-taken"));
         this.element.style.borderBottomColor = this.getBorderColor(this.token?.document);
+        
+        // Add GM-only click handler for action tracking
+        if (game.user.isGM) {
+            this.element.addEventListener("click", async (event) => {
+                // Don't trigger on action button clicks
+                if (event.target.classList.contains("action") || event.target.closest(".action")) return;
+                
+                event.stopPropagation();
+                const currentFlag = this.combatant.getFlag(MODULE_ID, "actionTaken") || false;
+                await this.combatant.setFlag(MODULE_ID, "actionTaken", !currentFlag);
+            });
+        }
+        
         this.element.querySelectorAll(".action").forEach((action) => {
             action.addEventListener("click", async (event) => {
                 event.stopPropagation();
@@ -299,6 +313,10 @@ export class CombatantPortrait {
         const resource2 = hasPermission ? this.getResource(game.settings.get(MODULE_ID, "resource")) : null;
         const portraitResourceSetting = game.settings.get(MODULE_ID, "portraitResource");
         const portraitResource = hasPermission && portraitResourceSetting ? this.getResource(portraitResourceSetting) : null;
+        
+        // Check if this combatant has taken their action this round
+        const actionTaken = combatant.getFlag(MODULE_ID, "actionTaken") || false;
+        
         const turn = {
             id: combatant.id,
             name: this.name,
@@ -309,6 +327,7 @@ export class CombatantPortrait {
             showPass: combatant.isOwner && !game.user.isGM,
             defeated: combatant.isDefeated,
             hidden: combatant.hidden,
+            actionTaken: actionTaken,
             hasResource: resource !== null,
             hasResource2: resource2 !== null,
             hasPortraitResource: portraitResource !== null,
@@ -328,7 +347,7 @@ export class CombatantPortrait {
             barsOrder: null,
             displayDescriptions: displayDescriptions,
         };
-        turn.css = [turn.active ? "active" : "", turn.hidden ? "hidden" : "", turn.defeated ? "defeated" : ""].join(" ").trim();
+        turn.css = [turn.active ? "active" : "", turn.hidden ? "hidden" : "", turn.defeated ? "defeated" : "", turn.actionTaken ? "action-taken" : ""].join(" ").trim();
 
         // Actor and Token status effects
         turn.effects = new Set();

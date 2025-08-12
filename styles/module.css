@@ -60,6 +60,14 @@
 #combat-dock .combatant-portrait.active .combatant-title {
   display: flex;
 }
+#combat-dock .combatant-portrait.action-taken {
+  filter: grayscale(1) brightness(0.7);
+  opacity: 0.6;
+  cursor: pointer;
+}
+#combat-dock .combatant-portrait.action-taken:hover {
+  opacity: 0.8;
+}
 #combat-dock .combatant-portrait:not(.active) .portrait-pass {
   display: none;
 }

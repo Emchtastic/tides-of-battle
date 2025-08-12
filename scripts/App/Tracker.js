@@ -300,7 +300,14 @@ export class CombatDock extends Application {
 
     async _onRoundChange() {
         const toDelete = [];
+        const toClearActions = [];
+        
         for (const combatant of this.combat.combatants) {
+            // Clear action taken flags for all combatants at start of new round
+            if (combatant.getFlag(MODULE_ID, "actionTaken")) {
+                toClearActions.push(combatant.id);
+            }
+            
             const duration = combatant.getFlag(MODULE_ID, "duration");
             if (!duration) continue;
             const roundCreated = combatant.getFlag(MODULE_ID, "roundCreated");
@@ -317,6 +324,16 @@ export class CombatDock extends Application {
                 });
             }
         }
+        
+        // Clear action taken flags
+        if (toClearActions.length > 0) {
+            const updates = toClearActions.map(id => ({
+                _id: id,
+                [`flags.${MODULE_ID}.-=actionTaken`]: null
+            }));
+            await this.combat.updateEmbeddedDocuments("Combatant", updates);
+        }
+        
         if (toDelete.length > 0) {
             await this.combat.deleteEmbeddedDocuments("Combatant", toDelete);
         }
