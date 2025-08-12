@@ -38,10 +38,16 @@
                     {{/if}}
                 </div>
                 {{#if isGM}}
-                    <button class="begin-combat-btn" data-action="begin-combat">
-                        <i class="fas fa-play"></i>
-                        Begin Combat
-                    </button>
+                    <div class="combat-prep-buttons">
+                        <button class="cancel-encounter-btn" data-action="cancel-encounter">
+                            <i class="fas fa-times"></i>
+                            Cancel Encounter
+                        </button>
+                        <button class="begin-combat-btn" data-action="begin-combat">
+                            <i class="fas fa-play"></i>
+                            Begin Combat
+                        </button>
+                    </div>
                 {{/if}}
             </div>
         {{/if}}

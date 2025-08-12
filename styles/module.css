@@ -1,5 +1,5 @@
 :root {
-  --combatant-portrait-size: 100px;
+  -size: 100px;
   --combatant-portrait-aspect: 1.5;
   --combatant-portrait-border-radius: 0%;
   --combatant-portrait-margin: 0 calc(var(--combatant-portrait-size) * 0.1);
@@ -512,6 +512,38 @@
   transform: translateY(0);
 }
 #combat-dock .begin-combat-container .begin-combat-btn i {
+  font-size: 1.1em;
+}
+#combat-dock .begin-combat-container .combat-prep-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+}
+#combat-dock .begin-combat-container .cancel-encounter-btn {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(244, 67, 54, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#combat-dock .begin-combat-container .cancel-encounter-btn:hover {
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(244, 67, 54, 0.4);
+}
+#combat-dock .begin-combat-container .cancel-encounter-btn:active {
+  transform: translateY(0);
+}
+#combat-dock .begin-combat-container .cancel-encounter-btn i {
   font-size: 1.1em;
 }
 #combat-dock .no-combat-container {

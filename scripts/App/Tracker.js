@@ -285,6 +285,38 @@ export class CombatDock extends Application {
         }
     }
 
+    async cancelEncounter() {
+        if (!game.user.isGM) return;
+        
+        try {
+            // Confirm with the user before canceling
+            const confirmed = await Dialog.confirm({
+                title: "Cancel Encounter",
+                content: "<p>Are you sure you want to cancel this encounter? All combatants and phase selections will be lost.</p>",
+                yes: () => true,
+                no: () => false
+            });
+            
+            if (!confirmed) return;
+            
+            if (this.combat) {
+                console.log("Canceling encounter:", this.combat.id);
+                await this.combat.delete();
+                ui.notifications.info("Encounter canceled");
+            }
+            
+            // Clear the combat reference
+            this.combat = null;
+            
+            // Re-render to show the no-combat state
+            this.render(true);
+            
+        } catch (error) {
+            console.error("Error canceling encounter:", error);
+            ui.notifications.error("Failed to cancel encounter");
+        }
+    }
+
     getPendingPlayers() {
         if (!this.combat) return [];
         
@@ -434,7 +466,7 @@ export class CombatDock extends Application {
         
         // Ensure phase display is properly initialized
         this.updatePhaseDisplay();
-        this.element[0].querySelectorAll(".buttons-container i, .begin-combat-btn, .create-encounter-btn").forEach((element) => {
+        this.element[0].querySelectorAll(".buttons-container i, .begin-combat-btn, .create-encounter-btn, .cancel-encounter-btn").forEach((element) => {
             element.addEventListener("click", async (e) => {
                 const action = e.currentTarget.dataset.action;
                 switch (action) {
@@ -467,6 +499,9 @@ export class CombatDock extends Application {
                         break;
                     case "create-encounter":
                         await this.createEncounter();
+                        break;
+                    case "cancel-encounter":
+                        await this.cancelEncounter();
                         break;
                 }
             });
