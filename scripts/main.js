@@ -68,15 +68,23 @@ Hooks.on('updateCombat', (combat, updates) => {
     }
 });
 
-// Helper function to clear all rotating dice from tokens
+// Helper function to clear all turn indicators from tokens
 function clearAllRotatingDice() {
     canvas.tokens.placeables.forEach(token => {
-        const existingDie = token.children.find(child => child.name === "activeIndicator");
-        if (existingDie) {
-            token.removeChild(existingDie);
+        // Use native method if available
+        if (typeof token.clearTurnIndicator === 'function') {
+            token.clearTurnIndicator();
+        } else {
+            // Manual cleanup for custom indicators
+            const existingIndicator = token.children.find(child => 
+                child.name === "turnIndicator" || child.name === "activeIndicator"
+            );
+            if (existingIndicator) {
+                token.removeChild(existingIndicator);
+            }
         }
     });
-    console.log("Cleared all rotating dice indicators");
+    console.log("Cleared all turn indicators");
 }
 
 Hooks.on('canvasReady', () => {

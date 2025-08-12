@@ -264,38 +264,33 @@ export class CombatantPortrait {
     async setAsActiveCombatant() {
         console.log("Right-click detected - setting as active combatant:", this.combatant.name);
         
-        // Debug token access
-        console.log("Combatant token:", this.combatant.token);
-        console.log("Token object:", this.combatant.token?.object);
-        console.log("Canvas tokens:", canvas.tokens);
-        
         // Clear any existing active combatant in this combat
         const currentActive = this.combat.getFlag(MODULE_ID, "activeCombatant");
         if (currentActive) {
             console.log("Clearing previous active combatant");
-            // Clear the rotating die from the previous token
+            // Clear the turn indicator from the previous token
             const previousCombatant = this.combat.combatants.get(currentActive);
             if (previousCombatant?.token?.object) {
-                this.clearRotatingDie(previousCombatant.token.object);
+                this.clearTurnIndicator(previousCombatant.token.object);
             }
         }
         
         // Set this combatant as the active one
         await this.combat.setFlag(MODULE_ID, "activeCombatant", this.combatant.id);
         
-        // Add rotating die animation to the token on the map
+        // Add Foundry's native turn indicator to the token
         const tokenObject = this.combatant.token?.object;
-        console.log("Attempting to add die to token object:", tokenObject);
+        console.log("Attempting to add turn indicator to token object:", tokenObject);
         
         if (tokenObject) {
-            this.addRotatingDie(tokenObject);
+            this.addTurnIndicator(tokenObject);
         } else {
             console.warn("No token object found for combatant:", this.combatant.name);
             // Try alternative method to find token
             const foundToken = canvas.tokens.placeables.find(t => t.document.id === this.combatant.token?.id);
             console.log("Alternative token search result:", foundToken);
             if (foundToken) {
-                this.addRotatingDie(foundToken);
+                this.addTurnIndicator(foundToken);
             }
         }
         
@@ -308,87 +303,88 @@ export class CombatantPortrait {
         ui.notifications.info(`${this.combatant.name} is now acting`);
     }
 
-    addRotatingDie(tokenObject) {
-        console.log("addRotatingDie called with:", tokenObject);
-        
-        // Remove any existing die first
-        this.clearRotatingDie(tokenObject);
+    addTurnIndicator(tokenObject) {
+        console.log("addTurnIndicator called with:", tokenObject);
         
         try {
-            // Try multiple die texture options
-            let texture;
-            const textureOptions = [
-                "icons/dice/d20black.svg",
-                "icons/dice/d20.svg", 
-                "icons/dice/d12black.svg",
-                "icons/svg/d20-grey.svg"
-            ];
-            
-            for (const texturePath of textureOptions) {
-                try {
-                    texture = PIXI.Texture.from(texturePath);
-                    console.log("Successfully loaded texture:", texturePath);
-                    break;
-                } catch (e) {
-                    console.warn("Failed to load texture:", texturePath, e);
-                }
+            // Use Foundry's native turn indicator system
+            if (typeof tokenObject.drawTurnIndicator === 'function') {
+                tokenObject.drawTurnIndicator();
+                console.log("Added native turn indicator to", this.combatant.name);
+            } else {
+                // Fallback to manual turn indicator creation using Foundry's approach
+                this.drawCustomTurnIndicator(tokenObject);
             }
-            
-            if (!texture) {
-                console.error("No valid texture found for rotating die");
-                return;
-            }
-            
-            // Create rotating die effect
-            const die = new PIXI.Sprite(texture);
-            die.name = "activeIndicator";
-            die.anchor.set(0.5);
-            
-            // Position behind the token
-            die.x = tokenObject.w / 2;
-            die.y = tokenObject.h / 2;
-            die.width = Math.max(tokenObject.w * 0.6, 32); // Minimum 32px size
-            die.height = Math.max(tokenObject.h * 0.6, 32);
-            die.alpha = 0.8;
-            die.zIndex = -1;
-            
-            console.log("Die properties:", {
-                x: die.x,
-                y: die.y, 
-                width: die.width,
-                height: die.height,
-                alpha: die.alpha
-            });
-            
-            // Add to token
-            tokenObject.addChild(die);
-            console.log("Die added to token, children count:", tokenObject.children.length);
-            
-            // Create rotation animation
-            const ticker = (delta) => {
-                if (die.parent) {
-                    die.rotation += 0.02 * delta;
-                } else {
-                    // Remove ticker if die is no longer in scene
-                    canvas.app.ticker.remove(ticker);
-                    console.log("Removed ticker as die no longer has parent");
-                }
-            };
-            
-            canvas.app.ticker.add(ticker);
-            console.log("Added rotating die indicator to", this.combatant.name);
-            
         } catch (error) {
-            console.error("Error creating rotating die:", error);
+            console.error("Error creating turn indicator:", error);
         }
     }
 
-    clearRotatingDie(tokenObject) {
-        // Remove existing rotating die if present
-        const existingDie = tokenObject.children.find(child => child.name === "activeIndicator");
-        if (existingDie) {
-            tokenObject.removeChild(existingDie);
-            console.log("Removed rotating die indicator");
+    drawCustomTurnIndicator(tokenObject) {
+        // Remove any existing indicators first
+        this.clearTurnIndicator(tokenObject);
+        
+        // Create turn indicator using Foundry's style
+        const indicator = new PIXI.Container();
+        indicator.name = "turnIndicator";
+        
+        // Create the spinning die background
+        const bg = new PIXI.Graphics();
+        bg.beginFill(0x000000, 0.8);
+        bg.drawCircle(0, 0, tokenObject.w * 0.2);
+        bg.endFill();
+        indicator.addChild(bg);
+        
+        // Create the die icon
+        const icon = new PIXI.Text("🎲", {
+            fontSize: tokenObject.w * 0.25,
+            fill: 0xffffff,
+            anchor: 0.5
+        });
+        icon.anchor.set(0.5);
+        indicator.addChild(icon);
+        
+        // Position the indicator
+        indicator.x = tokenObject.w / 2;
+        indicator.y = tokenObject.h * 0.1; // Top of token
+        indicator.zIndex = 1000; // Above token
+        
+        // Add to token
+        tokenObject.addChild(indicator);
+        
+        // Create rotation animation
+        const ticker = (delta) => {
+            if (indicator.parent) {
+                icon.rotation += 0.1 * delta;
+            } else {
+                canvas.app.ticker.remove(ticker);
+            }
+        };
+        
+        canvas.app.ticker.add(ticker);
+        console.log("Added custom turn indicator to", this.combatant.name);
+    }
+
+    clearTurnIndicator(tokenObject) {
+        console.log("clearTurnIndicator called with:", tokenObject);
+        
+        try {
+            // Use Foundry's native method if available
+            if (typeof tokenObject.clearTurnIndicator === 'function') {
+                tokenObject.clearTurnIndicator();
+                console.log("Cleared native turn indicator");
+            } else {
+                // Manual cleanup
+                const existingIndicator = tokenObject.children.find(child => 
+                    child.name === "turnIndicator" || child.name === "activeIndicator"
+                );
+                if (existingIndicator) {
+                    tokenObject.removeChild(existingIndicator);
+                    console.log("Removed custom turn indicator");
+                }
+            }
+        } catch (error) {
+            console.error("Error clearing turn indicator:", error);
         }
     }
 
