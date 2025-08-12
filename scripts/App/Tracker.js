@@ -433,7 +433,10 @@ export class CombatDock extends Application {
             });
         });
         this.autosize();
-        this.setControlsOrder();
+        // Only call setControlsOrder if the element is properly rendered
+        if (this.element && this.element[0]) {
+            this.setControlsOrder();
+        }
     }
 
     _onRenderCombatTracker() {
@@ -444,7 +447,12 @@ export class CombatDock extends Application {
     _onCombatTurn(combat, updates, update) {
         if (!("turn" in updates) && !("round" in updates)) return;
         if ("round" in updates) this._onRoundChange();
+        
+        if (!this.element || !this.element[0]) return;
+        
         const combatantsContainer = this.element[0].querySelector("#combatants");
+        if (!combatantsContainer) return;
+        
         const filteredChildren = Array.from(combatantsContainer.children).filter((c) => !c.classList.contains("separator"));
         const currentSize = combatantsContainer.getBoundingClientRect();
         combatantsContainer.style.minWidth = currentSize.width + "px";
@@ -563,15 +571,23 @@ export class CombatDock extends Application {
 
     setControlsOrder() {
         // Simple horizontal layout - no special ordering needed
+        if (!this.element || !this.element[0]) return;
+        
         const uiLeft = this.element[0].querySelector(".buttons-container.left");
         const uiRight = this.element[0].querySelector(".buttons-container.right");
         const combatants = this.element[0].querySelector("#combatants");
         
-        uiLeft.style.order = "";
-        uiRight.style.order = "";
-        combatants.style.order = "";
-        uiLeft.style.marginRight = "";
-        uiRight.style.marginLeft = "";
+        if (uiLeft) {
+            uiLeft.style.order = "";
+            uiLeft.style.marginRight = "";
+        }
+        if (uiRight) {
+            uiRight.style.order = "";
+            uiRight.style.marginLeft = "";
+        }
+        if (combatants) {
+            combatants.style.order = "";
+        }
     }
 
     _onDeleteCombat(combat) {
