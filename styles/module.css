@@ -19,6 +19,29 @@
   position: relative;
 }
 
+/* Hide initiative elements in core Foundry Combat Tracker */
+#sidebar #combat .combatant .token-initiative,
+#sidebar #combat .combatant .initiative,
+#sidebar #combat .combat-tracker .initiative,
+#sidebar #combat .combat-control[data-control=rollAll],
+#sidebar #combat .combat-control[data-control=rollNPC],
+#sidebar #combat .combat-control[data-control=resetAll],
+#sidebar #combat .combatant .token-initiative input,
+#sidebar #combat .directory-header .initiative,
+#sidebar #combat .combatant-controls .combatant-control[data-control=rollInitiative] {
+  display: none !important;
+}
+
+/* Adjust combat tracker layout without initiative column */
+#sidebar #combat .combatant .token-name {
+  flex: 1;
+  margin-right: 0;
+}
+
+#sidebar #combat .combatant .token-resource {
+  margin-left: auto;
+}
+
 #combat-dock .combatant-portrait {
   pointer-events: all;
   width: var(--combatant-portrait-size);
