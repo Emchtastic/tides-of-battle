@@ -32,11 +32,8 @@ Hooks.on('createCombat', (combat) => {
 // Set default phase for new combatants
 Hooks.on('createCombatant', async (combatant) => {
     if (!combatant.getFlag(MODULE_ID, "phase")) {
-        // For testing: randomly assign phases to see filtering in action
-        const phases = ["fast", "enemy", "slow"];
-        const randomPhase = phases[Math.floor(Math.random() * phases.length)];
-        await combatant.setFlag(MODULE_ID, "phase", randomPhase);
-        console.log(`Assigned ${combatant.name} to ${randomPhase} phase`);
+        await combatant.setFlag(MODULE_ID, "phase", "fast");
+        console.log(`Assigned ${combatant.name} to fast phase`);
     }
 });
 

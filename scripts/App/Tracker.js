@@ -123,6 +123,22 @@ export class CombatDock extends Application {
 
     async setCombatantPhase(combatant, phase) {
         await combatant.setFlag(MODULE_ID, "phase", phase);
+        // Refresh display if the phase change affects the current view
+        this.updatePhaseDisplay();
+        console.log(`${combatant.name} moved to ${phase} phase`);
+    }
+
+    // Helper method for testing - assign specific combatants to different phases
+    async testPhaseAssignment() {
+        const allCombatants = this.allCombatants;
+        if (allCombatants.length >= 3) {
+            await this.setCombatantPhase(allCombatants[0], PHASES.FAST);
+            await this.setCombatantPhase(allCombatants[1], PHASES.ENEMY);
+            await this.setCombatantPhase(allCombatants[2], PHASES.SLOW);
+            console.log("Test phase assignment complete - first combatant in Fast, second in Enemy, third in Slow");
+        } else {
+            console.log("Need at least 3 combatants for test phase assignment");
+        }
     }
 
     getPhaseDisplayName(phase) {
