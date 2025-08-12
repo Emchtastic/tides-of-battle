@@ -1,5 +1,5 @@
 {
-    "combat-tracker-dock": {
+    "tides-of-battle": {
         "settings": {
             "attributeColor": {
                 "hint": "La couleur du texte et de la barre des principaux attributs suivis dans le suivi des combats. \nVous pouvez utiliser n'importe quelle valeur de couleur CSS valide (par ex.",

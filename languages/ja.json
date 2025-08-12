@@ -1,5 +1,5 @@
 {
-    "combat-tracker-dock": {
+    "tides-of-battle": {
         "settings": {
             "attributeColor": {
                 "hint": "戦闘トラッカーのメインの追跡属性テキストとバーの色。\n任意の有効な CSS カラー値を使用できます (例:",

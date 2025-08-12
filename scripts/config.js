@@ -36,19 +36,19 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "portraitSize", {
-        name: "combat-tracker-dock.settings.portraitSize.name",
-        hint: "combat-tracker-dock.settings.portraitSize.hint",
+        name: "tides-of-battle.settings.portraitSize.name",
+        hint: "tides-of-battle.settings.portraitSize.hint",
         scope: "client",
         config: true,
         type: String,
         choices: {
-            "30px": "combat-tracker-dock.settings.portraitSize.choices.30px",
-            "50px": "combat-tracker-dock.settings.portraitSize.choices.50px",
-            "70px": "combat-tracker-dock.settings.portraitSize.choices.70px",
-            "90px": "combat-tracker-dock.settings.portraitSize.choices.90px",
-            "110px": "combat-tracker-dock.settings.portraitSize.choices.110px",
-            "150px": "combat-tracker-dock.settings.portraitSize.choices.150px",
-            "180px": "combat-tracker-dock.settings.portraitSize.choices.180px",
+            "30px": "tides-of-battle.settings.portraitSize.choices.30px",
+            "50px": "tides-of-battle.settings.portraitSize.choices.50px",
+            "70px": "tides-of-battle.settings.portraitSize.choices.70px",
+            "90px": "tides-of-battle.settings.portraitSize.choices.90px",
+            "110px": "tides-of-battle.settings.portraitSize.choices.110px",
+            "150px": "tides-of-battle.settings.portraitSize.choices.150px",
+            "180px": "tides-of-battle.settings.portraitSize.choices.180px",
         },
         default: "70px",
         onChange: () => {
@@ -59,15 +59,15 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "overflowStyle", {
-        name: "combat-tracker-dock.settings.overflowStyle.name",
-        hint: "combat-tracker-dock.settings.overflowStyle.hint",
+        name: "tides-of-battle.settings.overflowStyle.name",
+        hint: "tides-of-battle.settings.overflowStyle.hint",
         scope: "client",
         config: true,
         type: String,
         choices: {
-            autofit: "combat-tracker-dock.settings.overflowStyle.choices.autofit",
-            hidden: "combat-tracker-dock.settings.overflowStyle.choices.hidden",
-            scroll: "combat-tracker-dock.settings.overflowStyle.choices.scroll",
+            autofit: "tides-of-battle.settings.overflowStyle.choices.autofit",
+            hidden: "tides-of-battle.settings.overflowStyle.choices.hidden",
+            scroll: "tides-of-battle.settings.overflowStyle.choices.scroll",
         },
         default: "autofit",
         onChange: () => {
@@ -78,29 +78,29 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "carouselStyle", {
-        name: "combat-tracker-dock.settings.carouselStyle.name",
-        hint: "combat-tracker-dock.settings.carouselStyle.hint",
+        name: "tides-of-battle.settings.carouselStyle.name",
+        hint: "tides-of-battle.settings.carouselStyle.hint",
         scope: "world",
         config: true,
         type: Number,
         choices: {
-            0: "combat-tracker-dock.settings.carouselStyle.choices.centerCarousel",
-            1: "combat-tracker-dock.settings.carouselStyle.choices.leftCarousel",
-            2: "combat-tracker-dock.settings.carouselStyle.choices.basic",
+            0: "tides-of-battle.settings.carouselStyle.choices.centerCarousel",
+            1: "tides-of-battle.settings.carouselStyle.choices.leftCarousel",
+            2: "tides-of-battle.settings.carouselStyle.choices.basic",
         },
         default: 0,
         onChange: () => ui.combatDock?.refresh(),
     });
 
     game.settings.register(MODULE_ID, "direction", {
-        name: "combat-tracker-dock.settings.direction.name",
-        hint: "combat-tracker-dock.settings.direction.hint",
+        name: "tides-of-battle.settings.direction.name",
+        hint: "tides-of-battle.settings.direction.hint",
         scope: "world",
         config: true,
         type: String,
         choices: {
-            row: "combat-tracker-dock.settings.direction.choices.row",
-            column: "combat-tracker-dock.settings.direction.choices.column",
+            row: "tides-of-battle.settings.direction.choices.row",
+            column: "tides-of-battle.settings.direction.choices.column",
         },
         default: "row",
         onChange: () => {
@@ -113,15 +113,15 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "alignment", {
-        name: "combat-tracker-dock.settings.alignment.name",
-        hint: "combat-tracker-dock.settings.alignment.hint",
+        name: "tides-of-battle.settings.alignment.name",
+        hint: "tides-of-battle.settings.alignment.hint",
         scope: "world",
         config: true,
         type: String,
         choices: {
-            left: "combat-tracker-dock.settings.alignment.choices.left",
-            center: "combat-tracker-dock.settings.alignment.choices.center",
-            right: "combat-tracker-dock.settings.alignment.choices.right",
+            left: "tides-of-battle.settings.alignment.choices.left",
+            center: "tides-of-battle.settings.alignment.choices.center",
+            right: "tides-of-battle.settings.alignment.choices.right",
         },
         default: "center",
         onChange: () => {
@@ -132,15 +132,15 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "portraitAspect", {
-        name: "combat-tracker-dock.settings.portraitAspect.name",
-        hint: "combat-tracker-dock.settings.portraitAspect.hint",
+        name: "tides-of-battle.settings.portraitAspect.name",
+        hint: "tides-of-battle.settings.portraitAspect.hint",
         scope: "world",
         config: true,
         type: Number,
         choices: {
-            1: "combat-tracker-dock.settings.portraitAspect.choices.square",
-            1.5: "combat-tracker-dock.settings.portraitAspect.choices.portrait",
-            2: "combat-tracker-dock.settings.portraitAspect.choices.long",
+            1: "tides-of-battle.settings.portraitAspect.choices.square",
+            1.5: "tides-of-battle.settings.portraitAspect.choices.portrait",
+            2: "tides-of-battle.settings.portraitAspect.choices.long",
         },
         default: 1.5,
         onChange: () => {
@@ -150,15 +150,15 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "roundness", {
-        name: "combat-tracker-dock.settings.roundness.name",
-        hint: "combat-tracker-dock.settings.roundness.hint",
+        name: "tides-of-battle.settings.roundness.name",
+        hint: "tides-of-battle.settings.roundness.hint",
         scope: "world",
         config: true,
         type: String,
         choices: {
-            "0%": "combat-tracker-dock.settings.roundness.choices.sharp",
-            "10%": "combat-tracker-dock.settings.roundness.choices.soft",
-            "20%": "combat-tracker-dock.settings.roundness.choices.round",
+            "0%": "tides-of-battle.settings.roundness.choices.sharp",
+            "10%": "tides-of-battle.settings.roundness.choices.soft",
+            "20%": "tides-of-battle.settings.roundness.choices.round",
         },
         default: "0%",
         onChange: () => {
@@ -168,8 +168,8 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "attributeColor", {
-        name: "combat-tracker-dock.settings.attributeColor.name",
-        hint: "combat-tracker-dock.settings.attributeColor.hint",
+        name: "tides-of-battle.settings.attributeColor.name",
+        hint: "tides-of-battle.settings.attributeColor.hint",
         scope: "world",
         config: true,
         type: String,
@@ -181,8 +181,8 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "attributeColor2", {
-        name: "combat-tracker-dock.settings.attributeColor2.name",
-        hint: "combat-tracker-dock.settings.attributeColor2.hint",
+        name: "tides-of-battle.settings.attributeColor2.name",
+        hint: "tides-of-battle.settings.attributeColor2.hint",
         scope: "world",
         config: true,
         type: String,
@@ -194,8 +194,8 @@ export function registerSettings() {
     });
     //
     game.settings.register(MODULE_ID, "attributeColorPortrait", {
-        name: "combat-tracker-dock.settings.attributeColorPortrait.name",
-        hint: "combat-tracker-dock.settings.attributeColorPortrait.hint",
+        name: "tides-of-battle.settings.attributeColorPortrait.name",
+        hint: "tides-of-battle.settings.attributeColorPortrait.hint",
         scope: "world",
         config: true,
         type: String,
@@ -207,38 +207,38 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "barsPlacement", {
-        name: "combat-tracker-dock.settings.barsPlacement.name",
-        hint: "combat-tracker-dock.settings.barsPlacement.hint",
+        name: "tides-of-battle.settings.barsPlacement.name",
+        hint: "tides-of-battle.settings.barsPlacement.hint",
         scope: "world",
         config: true,
         type: String,
         choices: {
-            left: "combat-tracker-dock.settings.barsPlacement.choices.left",
-            right: "combat-tracker-dock.settings.barsPlacement.choices.right",
-            twinned: "combat-tracker-dock.settings.barsPlacement.choices.twinned",
+            left: "tides-of-battle.settings.barsPlacement.choices.left",
+            right: "tides-of-battle.settings.barsPlacement.choices.right",
+            twinned: "tides-of-battle.settings.barsPlacement.choices.twinned",
         },
         default: "left",
         onChange: () => ui.combatDock?.refresh(),
     });
 
     game.settings.register(MODULE_ID, "attributeVisibility", {
-        name: "combat-tracker-dock.settings.attributeVisibility.name",
-        hint: "combat-tracker-dock.settings.attributeVisibility.hint",
+        name: "tides-of-battle.settings.attributeVisibility.name",
+        hint: "tides-of-battle.settings.attributeVisibility.hint",
         scope: "world",
         config: true,
         type: String,
         choices: {
-            text: "combat-tracker-dock.settings.attributeVisibility.choices.text",
-            bars: "combat-tracker-dock.settings.attributeVisibility.choices.bars",
-            both: "combat-tracker-dock.settings.attributeVisibility.choices.both",
+            text: "tides-of-battle.settings.attributeVisibility.choices.text",
+            bars: "tides-of-battle.settings.attributeVisibility.choices.bars",
+            both: "tides-of-battle.settings.attributeVisibility.choices.both",
         },
         default: "both",
         onChange: () => ui.combatDock?.refresh(),
     });
 
     game.settings.register(MODULE_ID, "tooltipColor", {
-        name: "combat-tracker-dock.settings.tooltipColor.name",
-        hint: "combat-tracker-dock.settings.tooltipColor.hint",
+        name: "tides-of-battle.settings.tooltipColor.name",
+        hint: "tides-of-battle.settings.tooltipColor.hint",
         scope: "world",
         config: true,
         type: String,
@@ -250,8 +250,8 @@ export function registerSettings() {
     });
 
     /*game.settings.register(MODULE_ID, "displayDescriptions", {
-        name: "combat-tracker-dock.settings.displayDescriptions.name",
-        hint: "combat-tracker-dock.settings.displayDescriptions.hint",
+        name: "tides-of-battle.settings.displayDescriptions.name",
+        hint: "tides-of-battle.settings.displayDescriptions.hint",
         scope: "world",
         config: true,
         type: Boolean,
@@ -259,23 +259,23 @@ export function registerSettings() {
         onChange: () => ui.combatDock?.refresh(),
     });*/
     game.settings.register(MODULE_ID, "displayDescriptions", {
-        name: "combat-tracker-dock.settings.displayDescriptions.name",
-        hint: "combat-tracker-dock.settings.displayDescriptions.hint",
+        name: "tides-of-battle.settings.displayDescriptions.name",
+        hint: "tides-of-battle.settings.displayDescriptions.hint",
         scope: "world",
         config: true,
         type: String,
         choices: {
-            "none": "combat-tracker-dock.settings.displayDescriptions.choices.none",
-            "owner": "combat-tracker-dock.settings.displayDescriptions.choices.owner",
-            "all": "combat-tracker-dock.settings.displayDescriptions.choices.all",
+            "none": "tides-of-battle.settings.displayDescriptions.choices.none",
+            "owner": "tides-of-battle.settings.displayDescriptions.choices.owner",
+            "all": "tides-of-battle.settings.displayDescriptions.choices.all",
         },
         default: "owner",
         onChange: () => ui.combatDock?.refresh(),
     });
 
     game.settings.register(MODULE_ID, "hideDefeated", {
-        name: "combat-tracker-dock.settings.hideDefeated.name",
-        hint: "combat-tracker-dock.settings.hideDefeated.hint",
+        name: "tides-of-battle.settings.hideDefeated.name",
+        hint: "tides-of-battle.settings.hideDefeated.hint",
         scope: "world",
         config: true,
         type: Boolean,
@@ -284,8 +284,8 @@ export function registerSettings() {
     });    
 
     game.settings.register(MODULE_ID, "showDispositionColor", {
-        name: "combat-tracker-dock.settings.showDispositionColor.name",
-        hint: "combat-tracker-dock.settings.showDispositionColor.hint",
+        name: "tides-of-battle.settings.showDispositionColor.name",
+        hint: "tides-of-battle.settings.showDispositionColor.hint",
         scope: "world",
         config: true,
         type: Boolean,
@@ -294,8 +294,8 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "showInitiativeOnPortrait", {
-        name: "combat-tracker-dock.settings.showInitiativeOnPortrait.name",
-        hint: "combat-tracker-dock.settings.showInitiativeOnPortrait.hint",
+        name: "tides-of-battle.settings.showInitiativeOnPortrait.name",
+        hint: "tides-of-battle.settings.showInitiativeOnPortrait.hint",
         scope: "world",
         config: true,
         type: Boolean,
@@ -304,37 +304,37 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "portraitImage", {
-        name: "combat-tracker-dock.settings.portraitImage.name",
-        hint: "combat-tracker-dock.settings.portraitImage.hint",
+        name: "tides-of-battle.settings.portraitImage.name",
+        hint: "tides-of-battle.settings.portraitImage.hint",
         scope: "world",
         config: true,
         type: String,
         choices: {
-            actor: "combat-tracker-dock.settings.portraitImage.choices.actor",
-            token: "combat-tracker-dock.settings.portraitImage.choices.token",
+            actor: "tides-of-battle.settings.portraitImage.choices.actor",
+            token: "tides-of-battle.settings.portraitImage.choices.token",
         },
         default: "actor",
         onChange: () => ui.combatDock?.refresh(),
     });
 
     game.settings.register(MODULE_ID, "displayName", {
-        name: "combat-tracker-dock.settings.displayName.name",
-        hint: "combat-tracker-dock.settings.displayName.hint",
+        name: "tides-of-battle.settings.displayName.name",
+        hint: "tides-of-battle.settings.displayName.hint",
         scope: "world",
         config: true,
         type: String,
         choices: {
-            default: "combat-tracker-dock.settings.displayName.choices.default",
-            token: "combat-tracker-dock.settings.displayName.choices.token",
-            owner: "combat-tracker-dock.settings.displayName.choices.owner",
+            default: "tides-of-battle.settings.displayName.choices.default",
+            token: "tides-of-battle.settings.displayName.choices.token",
+            owner: "tides-of-battle.settings.displayName.choices.owner",
         },
         default: "default",
         onChange: () => ui.combatDock?.refresh(),
     });
 
     game.settings.register(MODULE_ID, "playerPlayerPermission", {
-        name: "combat-tracker-dock.settings.playerPlayerPermission.name",
-        hint: "combat-tracker-dock.settings.playerPlayerPermission.hint",
+        name: "tides-of-battle.settings.playerPlayerPermission.name",
+        hint: "tides-of-battle.settings.playerPlayerPermission.hint",
         scope: "world",
         config: true,
         type: Boolean,
@@ -343,8 +343,8 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "hideFirstRound", {
-        name: "combat-tracker-dock.settings.hideFirstRound.name",
-        hint: "combat-tracker-dock.settings.hideFirstRound.hint",
+        name: "tides-of-battle.settings.hideFirstRound.name",
+        hint: "tides-of-battle.settings.hideFirstRound.hint",
         scope: "world",
         config: true,
         type: Boolean,
@@ -353,8 +353,8 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "hideEnemyInitiative", {
-        name: "combat-tracker-dock.settings.hideEnemyInitiative.name",
-        hint: "combat-tracker-dock.settings.hideEnemyInitiative.hint",
+        name: "tides-of-battle.settings.hideEnemyInitiative.name",
+        hint: "tides-of-battle.settings.hideEnemyInitiative.hint",
         scope: "world",
         config: true,
         type: Boolean,
@@ -363,12 +363,12 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "portraitImageBorder", {
-        name: "combat-tracker-dock.settings.portraitImageBorder.name",
-        hint: "combat-tracker-dock.settings.portraitImageBorder.hint",
+        name: "tides-of-battle.settings.portraitImageBorder.name",
+        hint: "tides-of-battle.settings.portraitImageBorder.hint",
         scope: "world",
         config: true,
         type: String,
-        default: "modules/combat-tracker-dock/assets/border.png",
+        default: "modules/tides-of-battle/assets/border.png",
         filePicker: "imagevideo",
         onChange: function () {
             setPortraitImageBorder();
@@ -377,8 +377,8 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "portraitImageBackground", {
-        name: "combat-tracker-dock.settings.portraitImageBackground.name",
-        hint: "combat-tracker-dock.settings.portraitImageBackground.hint",
+        name: "tides-of-battle.settings.portraitImageBackground.name",
+        hint: "tides-of-battle.settings.portraitImageBackground.hint",
         scope: "world",
         config: true,
         type: String,
@@ -391,16 +391,16 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "showSystemIcons", {
-        name: "combat-tracker-dock.settings.showSystemIcons.name",
-        hint: "combat-tracker-dock.settings.showSystemIcons.hint",
+        name: "tides-of-battle.settings.showSystemIcons.name",
+        hint: "tides-of-battle.settings.showSystemIcons.hint",
         scope: "world",
         config: true,
         type: Number,
         choices: {
-            0: "combat-tracker-dock.settings.showSystemIcons.choices.none",
-            1: "combat-tracker-dock.settings.showSystemIcons.choices.tooltip",
-            2: "combat-tracker-dock.settings.showSystemIcons.choices.resource",
-            3: "combat-tracker-dock.settings.showSystemIcons.choices.both",
+            0: "tides-of-battle.settings.showSystemIcons.choices.none",
+            1: "tides-of-battle.settings.showSystemIcons.choices.tooltip",
+            2: "tides-of-battle.settings.showSystemIcons.choices.resource",
+            3: "tides-of-battle.settings.showSystemIcons.choices.both",
         },
         default: 1,
         onChange: () => ui.combatDock?.refresh(),
@@ -411,8 +411,8 @@ export function registerSettings() {
     setAllSettings();
 
     game.settings.register(MODULE_ID, "resource", {
-        name: "combat-tracker-dock.settings.resource.name",
-        hint: "combat-tracker-dock.settings.resource.hint",
+        name: "tides-of-battle.settings.resource.name",
+        hint: "tides-of-battle.settings.resource.hint",
         scope: "world",
         config: true,
         type: String,
@@ -421,8 +421,8 @@ export function registerSettings() {
     });
 
     game.settings.register(MODULE_ID, "portraitResource", {
-        name: "combat-tracker-dock.settings.portraitResource.name",
-        hint: "combat-tracker-dock.settings.portraitResource.hint",
+        name: "tides-of-battle.settings.portraitResource.name",
+        hint: "tides-of-battle.settings.portraitResource.hint",
         scope: "world",
         config: true,
         type: String,

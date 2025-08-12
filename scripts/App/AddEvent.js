@@ -9,8 +9,8 @@ export class AddEvent extends FormApplication {
     static get defaultOptions() {
         return foundry.utils.mergeObject(super.defaultOptions, {
             id: "combat-dock-add-event",
-            title: `combat-tracker-dock.add-event.title`,
-            template: `modules/combat-tracker-dock/templates/add-event.hbs`,
+            title: `tides-of-battle.add-event.title`,
+            template: `modules/tides-of-battle/templates/add-event.hbs`,
             width: 400,
             height: "auto",
             closeOnSubmit: true,
@@ -40,14 +40,14 @@ export class AddEvent extends FormApplication {
     }
 
     async _updateObject(event, formData) {
-        if (!formData.name || !formData.img || (!Number.isNumeric(formData.initiative) && !formData.initiative)) return ui.notifications.error(game.i18n.localize("combat-tracker-dock.add-event.error"));
+        if (!formData.name || !formData.img || (!Number.isNumeric(formData.initiative) && !formData.initiative)) return ui.notifications.error(game.i18n.localize("tides-of-battle.add-event.error"));
         this.combat.createEmbeddedDocuments("Combatant", [
             {
                 name: formData.name,
                 img: formData.img,
                 initiative: formData.initiative,
                 hidden: formData.hidden || false,
-                "flags.combat-tracker-dock": {
+                "flags.tides-of-battle": {
                     event: true,
                     duration: formData.duration || false,
                     roundCreated: this.combat.round,

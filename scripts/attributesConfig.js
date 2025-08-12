@@ -11,7 +11,7 @@ export class AttributesConfig extends FormApplication {
             ...super.defaultOptions,
             title: game.i18n.localize(`${MODULE_ID}.settings.attributesMenu.name`),
             id: "combat-dock-attributes-config",
-            template: `modules/combat-tracker-dock/templates/attributes-config.hbs`,
+            template: `modules/tides-of-battle/templates/attributes-config.hbs`,
             popOut: true,
             width: 500,
         };
@@ -61,7 +61,7 @@ export class AttributesConfig extends FormApplication {
             title: game.i18n.localize(`${MODULE_ID}.settings.attributesMenu.reset`),
             content: game.i18n.localize(`${MODULE_ID}.settings.attributesMenu.resetWarning`),
             yes: async () => {
-                const defaultSett = game.settings.settings.get("combat-tracker-dock.attributes").default;
+                const defaultSett = game.settings.settings.get("tides-of-battle.attributes").default;
                 await game.settings.set(MODULE_ID, "attributes", defaultSett);
                 this.render(true);
             },

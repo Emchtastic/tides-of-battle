@@ -1,16 +1,16 @@
 <form action="">
     <p class="notes">
-        {{{localize "combat-tracker-dock.settings.attributesMenu.form.notes"}}}
+        {{{localize "tides-of-battle.settings.attributesMenu.form.notes"}}}
     </p>
     <ul style="list-style: none; padding: 0; margin: 0;">
     {{#each attributes}}
     <li>
     <fieldset style="border-radius: 5px; margin-bottom: 0.2rem;">
         <div class="form-group" style="position: relative;">
-            <label for="{{@index}}.attr">{{{localize "combat-tracker-dock.settings.attributesMenu.form.attr.name"}}}</label>
+            <label for="{{@index}}.attr">{{{localize "tides-of-battle.settings.attributesMenu.form.attr.name"}}}</label>
             <input type="text" class="attr" name="{{@index}}.attr" placeholder="" value="{{attr}}">
             <select class="attributePicker" style="max-width: 1.3rem;border: none;background: transparent;position: absolute;right: 0;cursor:pointer; box-shadow: none !important;">
-                <option value="">{{{localize "combat-tracker-dock.settings.attributesMenu.form.attr.choose"}}}</option>
+                <option value="">{{{localize "tides-of-battle.settings.attributesMenu.form.attr.choose"}}}</option>
                 {{#each ../attributeChoices as |choices|}}
                 <optgroup label="{{@key}}">
                     {{#each choices as |choice|}}
@@ -21,12 +21,12 @@
             </select>
         </div>
         <div class="form-group">
-            <label for="{{@index}}.icon">{{{localize "combat-tracker-dock.settings.attributesMenu.form.icon.name"}}}</label>
+            <label for="{{@index}}.icon">{{{localize "tides-of-battle.settings.attributesMenu.form.icon.name"}}}</label>
             <input type="text" class="icon" name="{{@index}}.icon" placeholder="" value="{{icon}}">
             {{filePicker type="image" target=(concat @index ".icon")}}
         </div>
         <div class="form-group">
-            <label for="{{@index}}.units">{{{localize "combat-tracker-dock.settings.attributesMenu.form.units.name"}}}</label>
+            <label for="{{@index}}.units">{{{localize "tides-of-battle.settings.attributesMenu.form.units.name"}}}</label>
             <input type="text" class="units" name="{{@index}}.units" placeholder="" value="{{units}}">
         </div>
     </fieldset>
@@ -35,10 +35,10 @@
     </ul>
     <div style="display: flex;">
         <button type="submit"><i class="fas fa-save"></i> {{{localize
-            "combat-tracker-dock.settings.attributesMenu.form.save"}}}</button>
+            "tides-of-battle.settings.attributesMenu.form.save"}}}</button>
         <button id="reset"><i class="fas fa-undo"></i> {{{localize
-            "combat-tracker-dock.settings.attributesMenu.form.reset"}}}</button>
+            "tides-of-battle.settings.attributesMenu.form.reset"}}}</button>
         <button id="add"><i class="fas fa-plus"></i> {{{localize
-            "combat-tracker-dock.settings.attributesMenu.form.add"}}}</button>
+            "tides-of-battle.settings.attributesMenu.form.add"}}}</button>
     </div>
 </form>

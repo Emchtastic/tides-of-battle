@@ -4,7 +4,7 @@ import {CombatantPortrait} from './App/CombatantPortrait.js';
 import {defaultAttributesConfig, generateDescription} from './systems.js';
 import {showWelcome} from './lib/welcome.js';
 
-export const MODULE_ID = 'combat-tracker-dock';
+export const MODULE_ID = 'tides-of-battle';
 
 Hooks.once('init', function () {
     registerWrappers();
@@ -100,7 +100,7 @@ Hooks.on("renderCombatTrackerConfig", (app, html, data) => {
         e.preventDefault();
         new SettingsConfig().render(true)
         Hooks.once("renderSettingsConfig", (app, html, data) => {
-            html.querySelector('button[data-tab="combat-tracker-dock"]').click();
+            html.querySelector('button[data-tab="tides-of-battle"]').click();
         });
     });
 

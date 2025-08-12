@@ -1,5 +1,5 @@
 {
-    "combat-tracker-dock": {
+    "tides-of-battle": {
         "settings": {
             "attributeColor": {
                 "hint": "Die Farbe des Hauptattributtextes und der Leiste im Kampf-Tracker. \nSie können jeden gültigen CSS-Farbwert verwenden (z. B.",

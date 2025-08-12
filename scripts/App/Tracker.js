@@ -24,7 +24,7 @@ export class CombatDock extends Application {
             ...super.defaultOptions,
             id: "combat-dock",
             classes: ["combat-dock"],
-            template: `modules/combat-tracker-dock/templates/combat-tracker.hbs`,
+            template: `modules/tides-of-battle/templates/combat-tracker.hbs`,
             resizable: false,
             popOut: false,
         };
@@ -417,7 +417,7 @@ export class CombatDock extends Application {
                 toDelete.push(combatant.id);
                 ChatMessage.create({
                     speaker: { alias: "Combat Tracker Dock" },
-                    content: game.i18n.localize("combat-tracker-dock.add-event.expired").replace("%n", `<strong>${combatant.name}</strong>`),
+                    content: game.i18n.localize("tides-of-battle.add-event.expired").replace("%n", `<strong>${combatant.name}</strong>`),
                     type: CONST.CHAT_MESSAGE_TYPES.OTHER,
                     whisper: [game.user.id],
                 });

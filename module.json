@@ -1,8 +1,8 @@
 {
-  "title": "Carousel Combat Tracker",
-  "description": "Carousel style combat tracker. Spiritual successor of Combat Carousel",
-  "id": "combat-tracker-dock",
-  "version": "1.0",
+  "title": "Tides of Battle",
+  "description": "A streamlined combat tracker for tabletop RPGs. Built upon Carousel Combat Tracker.",
+  "id": "tides-of-battle",
+  "version": "1.0.0",
   "authors": [
     {
       "name": "theripper93",
@@ -60,9 +60,9 @@
     "styles/module.css"
   ],
   "packs": [],
-  "url": "https://github.com/theripper93/combat-tracker-dock",
-  "manifest": "https://github.com/theripper93/combat-tracker-dock/releases/latest/download/module.json",
-  "download": "https://github.com/theripper93/combat-tracker-dock/releases/download/0.9.7.3/module.zip",
+  "url": "https://github.com/Emchtastic/tides-of-battle",
+  "manifest": "https://github.com/Emchtastic/tides-of-battle/releases/latest/download/module.json",
+  "download": "https://github.com/Emchtastic/tides-of-battle/releases/download/1.0.0/module.zip",
   "relationships": {
     "requires": []
   },
