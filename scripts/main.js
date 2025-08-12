@@ -124,32 +124,8 @@ Hooks.on('ready', () => {
         
         console.log("GM phase selection processor ready");
         
-        // Watch for round advancement to re-prompt players
-        Hooks.on('updateCombat', (combat, updateData, options, userId) => {
-            console.log("=== COMBAT UPDATE DETECTED ===");
-            console.log("Update data:", updateData);
-            console.log("Current combat round:", combat.round);
-            console.log("Previous round in source:", combat._source?.round);
-            
-            // Check if the round advanced - be more explicit about detection
-            const newRound = updateData.round;
-            const oldRound = combat._source?.round || 0;
-            
-            if (newRound && newRound > oldRound) {
-                console.log("=== NEW ROUND DETECTED ===");
-                console.log("Old round:", oldRound);
-                console.log("New round:", newRound);
-                console.log("User who triggered:", game.users.get(userId)?.name);
-                
-                // Re-prompt all players for their phase choices
-                setTimeout(() => {
-                    console.log("Triggering phase re-prompting...");
-                    repromptAllPlayersForPhase(combat);
-                }, 500); // Reduced delay
-            } else {
-                console.log("Not a round advancement - skipping re-prompt");
-            }
-        });
+        // Note: Round advancement re-prompting is now handled directly in Tracker.nextPhase()
+        console.log("Using direct re-prompting in Tracker (not hook-based)");
         
         console.log("Round advancement watcher ready");
     } else {
@@ -158,13 +134,24 @@ Hooks.on('ready', () => {
     
     // All clients (GM and players) watch for phase selection prompts
     Hooks.on('updateCombatant', (combatant, updateData, options, userId) => {
+        console.log("=== UPDATE COMBATANT HOOK TRIGGERED ===");
+        console.log("Combatant:", combatant.name);
+        console.log("Update data:", updateData);
+        console.log("Current user:", game.user.name);
+        console.log("Is GM:", game.user.isGM);
+        
         // Check if this combatant needs phase selection and is owned by current user
         const needsPhaseSelection = updateData.flags?.[MODULE_ID]?.needsPhaseSelection;
+        console.log("Needs phase selection flag:", needsPhaseSelection);
+        
         if (needsPhaseSelection && !game.user.isGM) {
             console.log("=== PHASE SELECTION NEEDED DETECTED ===");
             
             // Check if this combatant is owned by the current user
             const isOwnedByCurrentUser = combatant.actor?.ownership?.[game.user.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+            console.log("Is owned by current user:", isOwnedByCurrentUser);
+            console.log("Actor ownership:", combatant.actor?.ownership);
+            console.log("Current user ID:", game.user.id);
             
             if (isOwnedByCurrentUser) {
                 console.log(`Prompting ${game.user.name} for phase choice for ${combatant.name} (new round)`);
@@ -229,7 +216,11 @@ Hooks.on('ready', () => {
                         console.error("Error during new round phase selection:", error);
                     }
                 }, 500);
+            } else {
+                console.log("Not owned by current user, skipping prompt");
             }
+        } else {
+            console.log("No phase selection needed or user is GM");
         }
     });
     
@@ -318,6 +309,10 @@ Hooks.on('ready', () => {
     showWelcome();
 });
 
+// Expose the reprompt function globally for access from other modules
+window.tidesOfBattle = window.tidesOfBattle || {};
+window.tidesOfBattle.repromptAllPlayersForPhase = repromptAllPlayersForPhase;
+
 // Function to re-prompt all players for their phase at the start of a new round
 async function repromptAllPlayersForPhase(combat) {
     console.log("=== RE-PROMPTING ALL PLAYERS FOR PHASE ===");
@@ -393,15 +388,22 @@ async function checkAllPlayersReady(combat) {
     console.log(`Players ready: ${playersWithPhases.length}/${playerCombatants.length}`);
     
     if (playersWithPhases.length >= playerCombatants.length) {
-        console.log("All players have selected their phases - clearing awaiting flag");
-        await combat.unsetFlag(MODULE_ID, "awaitingPhaseSelection");
+        console.log("All players have selected their phases - finishing round advancement");
         
-        // Refresh the combat dock to show the tracker
-        if (ui.combatDock) {
-            ui.combatDock.render(true);
+        // Call the combat tracker to finish the round advancement
+        if (ui.combatDock && ui.combatDock.finishRoundAdvancement) {
+            await ui.combatDock.finishRoundAdvancement();
+        } else {
+            // Fallback: clear the flag manually
+            await combat.unsetFlag(MODULE_ID, "awaitingPhaseSelection");
+            
+            // Refresh the combat dock
+            if (ui.combatDock) {
+                ui.combatDock.render(true);
+            }
+            
+            ui.notifications.info("All players have selected their phases. Combat tracker is now visible!");
         }
-        
-        ui.notifications.info("All players have selected their phases. Combat tracker is now visible!");
     }
 }
 

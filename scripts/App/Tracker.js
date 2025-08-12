@@ -101,26 +101,92 @@ export class CombatDock extends Application {
         const nextPhaseIndex = (currentPhaseIndex + 1) % PHASE_ORDER.length;
         console.log("Moving from phase index", currentPhaseIndex, "to", nextPhaseIndex);
         
-        // If we're going from SLOW back to FAST, increment the round and re-prompt players
+        // If we're going from SLOW back to FAST, this means end of round - re-prompt players
         if (this.currentPhase === PHASES.SLOW && PHASE_ORDER[nextPhaseIndex] === PHASES.FAST) {
-            console.log("=== END OF ROUND DETECTED - ADVANCING TO NEXT ROUND ===");
+            console.log("=== END OF ROUND - RE-PROMPTING PLAYERS ===");
             
-            // Set the awaiting flag immediately to hide the combat tracker
-            if (game.user.isGM) {
-                await this.combat.setFlag(MODULE_ID, "awaitingPhaseSelection", true);
-                console.log("Set awaitingPhaseSelection flag - combat tracker will hide");
-                
-                // Refresh the UI to show the phase selection screen
-                this.render(true);
+            if (!game.user.isGM) {
+                console.log("Only GM can advance rounds");
+                return;
             }
             
-            await this.combat.nextRound();
+            // Set awaiting flag to hide combat tracker immediately
+            await this.combat.setFlag(MODULE_ID, "awaitingPhaseSelection", true);
+            console.log("Combat tracker hidden - awaiting phase selection");
             
-            // The nextRound call will trigger the updateCombat hook which handles re-prompting
-            console.log("Round advanced - phase re-prompting should begin");
+            // Refresh UI to show "waiting for players" message
+            this.render(true);
+            
+            // Re-prompt all player characters directly
+            await this.repromptPlayersForNewRound();
+            
+            // Don't advance the round yet - wait for all players to select
+            console.log("Waiting for all players to select phases before advancing round");
+            return;
         }
         
+        // Normal phase advancement (not end of round)
         await this.setPhase(PHASE_ORDER[nextPhaseIndex]);
+    }
+
+    // Direct re-prompting when advancing from SLOW to FAST
+    async repromptPlayersForNewRound() {
+        console.log("=== DIRECTLY RE-PROMPTING PLAYERS FOR NEW ROUND ===");
+        
+        if (!this.combat || !this.combat.combatants) {
+            console.log("No valid combat found");
+            return;
+        }
+        
+        const playerCombatants = this.combat.combatants.filter(combatant => {
+            return combatant.actor?.hasPlayerOwner;
+        });
+        
+        console.log(`Found ${playerCombatants.length} player combatants to re-prompt`);
+        
+        // Clear existing phase selections and set needs selection flag
+        for (const combatant of playerCombatants) {
+            try {
+                console.log(`Re-prompting for ${combatant.name}`);
+                
+                // Clear existing phases
+                await combatant.unsetFlag(MODULE_ID, "phase");
+                await combatant.unsetFlag(MODULE_ID, "playerSelectedPhase");
+                
+                // Set flag to trigger prompt
+                await combatant.setFlag(MODULE_ID, "needsPhaseSelection", true);
+                
+                console.log(`Phase selection reset for ${combatant.name}`);
+                
+            } catch (error) {
+                console.error(`Error resetting phase for ${combatant.name}:`, error);
+            }
+        }
+        
+        // Notify all players
+        ui.notifications.info("New round starting - please select your phase!");
+        console.log("All players prompted for new round");
+    }
+
+    // Called when all players have selected their phases
+    async finishRoundAdvancement() {
+        console.log("=== ALL PLAYERS READY - FINISHING ROUND ADVANCEMENT ===");
+        
+        if (!game.user.isGM) return;
+        
+        // Clear the awaiting flag
+        await this.combat.unsetFlag(MODULE_ID, "awaitingPhaseSelection");
+        
+        // Now advance to the next round
+        await this.combat.nextRound();
+        
+        // Set the phase to FAST (start of new round)
+        await this.setPhase(PHASES.FAST);
+        
+        // Refresh the combat tracker to show with new phases
+        this.render(true);
+        
+        console.log("Round advancement completed - combat tracker restored");
     }
 
     async previousPhase() {
