@@ -215,12 +215,14 @@ export class CombatDock extends Application {
 
     getData() {
         const scroll = game.settings.get(MODULE_ID, "overflowStyle") === "scroll";
+        const hasCombat = !!this.combat;
         const combatStarted = this.combat?.getFlag(MODULE_ID, "combatStarted") ?? false;
         const pendingPlayers = this.getPendingPlayers();
         
         return {
             isGM: game.user.isGM,
             scroll,
+            hasCombat,
             combatStarted,
             pendingPlayers,
             currentPhase: this.currentPhase,
@@ -254,6 +256,30 @@ export class CombatDock extends Application {
         // Start the actual combat
         if (!this.combat.started) {
             this.combat.startCombat();
+        }
+    }
+
+    async createEncounter() {
+        if (!game.user.isGM) return;
+        
+        try {
+            // Create a new combat encounter
+            const combat = await Combat.create({
+                scene: canvas.scene?.id,
+                active: true
+            });
+            
+            console.log("Created new encounter:", combat.id);
+            
+            // Update this dock to use the new combat
+            this.combat = combat;
+            
+            // Re-render to show the new encounter state
+            this.render(true);
+            
+        } catch (error) {
+            console.error("Error creating encounter:", error);
+            ui.notifications.error("Failed to create encounter");
         }
     }
 
@@ -398,7 +424,7 @@ export class CombatDock extends Application {
         this.appendHtml();
         // Ensure phase display is properly initialized
         this.updatePhaseDisplay();
-        this.element[0].querySelectorAll(".buttons-container i, .begin-combat-btn").forEach((element) => {
+        this.element[0].querySelectorAll(".buttons-container i, .begin-combat-btn, .create-encounter-btn").forEach((element) => {
             element.addEventListener("click", async (e) => {
                 const action = e.currentTarget.dataset.action;
                 switch (action) {
@@ -428,6 +454,9 @@ export class CombatDock extends Application {
                         break;
                     case "add-event":
                         new AddEvent(this.combat).render(true);
+                        break;
+                    case "create-encounter":
+                        await this.createEncounter();
                         break;
                 }
             });

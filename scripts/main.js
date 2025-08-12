@@ -58,8 +58,8 @@ Hooks.on('canvasReady', () => {
 
 // Robust function to ensure combat dock exists when needed
 function ensureCombatDockExists() {
-    if (game.combat && !ui.combatDock) {
-        console.log("ensureCombatDockExists: Creating missing combat dock for active combat:", game.combat.id);
+    if (!ui.combatDock) {
+        console.log("ensureCombatDockExists: Creating combat dock", game.combat ? `for active combat: ${game.combat.id}` : "for encounter creation");
         new CONFIG.combatTrackerDock.CombatDock(game.combat).render(true);
         return true;
     }
@@ -97,8 +97,8 @@ Hooks.on('ready', () => {
     
     // Additional safety net - periodic check for missing combat dock
     setInterval(() => {
-        if (game.combat && !ui.combatDock) {
-            console.log("Periodic check: Found active combat without dock, creating one");
+        if (!ui.combatDock) {
+            console.log("Periodic check: No combat dock found, creating one");
             ensureCombatDockExists();
         }
     }, 5000); // Check every 5 seconds
