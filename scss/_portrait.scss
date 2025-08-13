@@ -335,4 +335,16 @@
             }
         }
     }
+
+    // Fixed portrait sizes - override CSS variables with locked pixel values
+    // This ensures portraits stay larger and don't revert when SCSS is recompiled
+    & .combatant-portrait {
+        width: 120px !important;
+        height: 150px !important;
+
+        &.active {
+            width: 144px !important;
+            height: 180px !important;
+        }
+    }
 }

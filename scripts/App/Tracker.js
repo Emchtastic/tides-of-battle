@@ -657,12 +657,16 @@ export class CombatDock extends Application {
     }
 
     _onCombatTurn(combat, updates, update) {
-        if (!("turn" in updates) && !("round" in updates)) return;
+        if (!("turn" in updates) && !("round" in updates) && !("flags" in updates)) return;
         
         // Ignore turn changes triggered by right-click portrait selection
         if (window.tidesOfBattle_ignoreTurnChange) return;
         
-        if ("round" in updates) this._onRoundChange();
+        // Check for round changes - either native Foundry round or our custom round flag
+        const hasRoundChange = "round" in updates || 
+            (updates.flags && updates.flags[MODULE_ID] && "currentRound" in updates.flags[MODULE_ID]);
+        
+        if (hasRoundChange) this._onRoundChange();
         
         if (!this.element || !this.element[0]) return;
         
