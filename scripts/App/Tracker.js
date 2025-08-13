@@ -658,6 +658,10 @@ export class CombatDock extends Application {
 
     _onCombatTurn(combat, updates, update) {
         if (!("turn" in updates) && !("round" in updates)) return;
+        
+        // Ignore turn changes triggered by right-click portrait selection
+        if (window.tidesOfBattle_ignoreTurnChange) return;
+        
         if ("round" in updates) this._onRoundChange();
         
         if (!this.element || !this.element[0]) return;

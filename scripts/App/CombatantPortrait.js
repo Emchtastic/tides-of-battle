@@ -181,7 +181,8 @@ export class CombatantPortrait {
             this.element.removeEventListener("click", this._actionClickHandler);
         }
         if (this._contextMenuHandler) {
-            this.element.removeEventListener("contextmenu", this._contextMenuHandler);
+            this.element.removeEventListener("contextmenu", this._contextMenuHandler, true);
+            this.element.removeEventListener("mousedown", this._mouseDownHandler, true);
         }
         
         // Add GM-only event handlers for action tracking and active combatant selection
@@ -198,19 +199,55 @@ export class CombatantPortrait {
                 await this.combatant.setFlag(MODULE_ID, "actionTaken", !currentFlag);
             };
             
-            // Right click for active combatant selection
-            this._contextMenuHandler = async (event) => {
-                // Don't trigger on action button clicks
-                if (event.target.classList.contains("action") || event.target.closest(".action")) return;
+            // Completely disable context menu and use mousedown for right-click detection
+            this._contextMenuHandler = (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                return false;
+            };
+            
+            this._mouseDownHandler = async (event) => {
+                // Only handle right mouse button (button 2)
+                if (event.button !== 2) return;
+                
+                // Don't trigger on action button clicks or effects
+                if (event.target.classList.contains("action") || event.target.closest(".action") ||
+                    event.target.classList.contains("portrait-effect") || event.target.closest(".portrait-effect")) return;
                 
                 event.preventDefault();
                 event.stopPropagation();
-                console.log("Right-click detected - setting as active combatant:", this.combatant.name);
-                await this.setAsActiveCombatant();
+                event.stopImmediatePropagation();
+                
+                // Set combat turn to show Foundry's native die indicator on token
+                try {
+                    const combat = this.combatant.parent;
+                    if (combat) {
+                        const combatantIndex = combat.turns.findIndex(c => c.id === this.combatant.id);
+                        if (combatantIndex >= 0) {
+                            // Set a flag to prevent module from reacting to this turn change
+                            window.tidesOfBattle_ignoreTurnChange = true;
+                            
+                            // This shows the rotating die indicator on the token
+                            await combat.update({ turn: combatantIndex });
+                            
+                            // Clear the flag after a short delay
+                            setTimeout(() => {
+                                window.tidesOfBattle_ignoreTurnChange = false;
+                            }, 100);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error setting combat turn:", error);
+                    window.tidesOfBattle_ignoreTurnChange = false;
+                }
+                
+                return false;
             };
             
             this.element.addEventListener("click", this._actionClickHandler);
-            this.element.addEventListener("contextmenu", this._contextMenuHandler);
+            this.element.addEventListener("contextmenu", this._contextMenuHandler, true); // Completely block context menu
+            this.element.addEventListener("mousedown", this._mouseDownHandler, true); // Handle right-click via mousedown
         }
         
         this.element.querySelectorAll(".action").forEach((action) => {
