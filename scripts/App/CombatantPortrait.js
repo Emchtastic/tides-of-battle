@@ -187,37 +187,12 @@ export class CombatantPortrait {
         
         // Add GM-only event handlers for action tracking and active combatant selection
         if (game.user.isGM) {
-            // Left click for action tracking (gray out)
+            // Left click for setting combat turn (show die indicator)
             this._actionClickHandler = async (event) => {
                 // Don't trigger on action button clicks
                 if (event.target.classList.contains("action") || event.target.closest(".action")) return;
                 
                 event.stopPropagation();
-                console.log("Portrait clicked for combatant:", this.combatant.name);
-                const currentFlag = this.combatant.getFlag(MODULE_ID, "actionTaken") || false;
-                console.log("Current action flag:", currentFlag, "Setting to:", !currentFlag);
-                await this.combatant.setFlag(MODULE_ID, "actionTaken", !currentFlag);
-            };
-            
-            // Completely disable context menu and use mousedown for right-click detection
-            this._contextMenuHandler = (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                event.stopImmediatePropagation();
-                return false;
-            };
-            
-            this._mouseDownHandler = async (event) => {
-                // Only handle right mouse button (button 2)
-                if (event.button !== 2) return;
-                
-                // Don't trigger on action button clicks or effects
-                if (event.target.classList.contains("action") || event.target.closest(".action") ||
-                    event.target.classList.contains("portrait-effect") || event.target.closest(".portrait-effect")) return;
-                
-                event.preventDefault();
-                event.stopPropagation();
-                event.stopImmediatePropagation();
                 
                 // Set combat turn to show Foundry's native die indicator on token
                 try {
@@ -241,6 +216,33 @@ export class CombatantPortrait {
                     console.error("Error setting combat turn:", error);
                     window.tidesOfBattle_ignoreTurnChange = false;
                 }
+            };
+            
+            // Completely disable context menu and use mousedown for right-click detection
+            this._contextMenuHandler = (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                return false;
+            };
+            
+            this._mouseDownHandler = async (event) => {
+                // Only handle right mouse button (button 2)
+                if (event.button !== 2) return;
+                
+                // Don't trigger on action button clicks or effects
+                if (event.target.classList.contains("action") || event.target.closest(".action") ||
+                    event.target.classList.contains("portrait-effect") || event.target.closest(".portrait-effect")) return;
+                
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                
+                // Right click for action tracking (gray out)
+                console.log("Portrait right-clicked for combatant:", this.combatant.name);
+                const currentFlag = this.combatant.getFlag(MODULE_ID, "actionTaken") || false;
+                console.log("Current action flag:", currentFlag, "Setting to:", !currentFlag);
+                await this.combatant.setFlag(MODULE_ID, "actionTaken", !currentFlag);
                 
                 return false;
             };
