@@ -164,9 +164,8 @@ export class CombatantPortrait {
         this.element.innerHTML = template;
         this.element.setAttribute("data-tooltip", tooltip);
         
-        // Set tooltip direction based on alignment (simplified - no carousel)
-        const alignment = game.settings.get(MODULE_ID, "alignment");
-        this.element.setAttribute("data-tooltip-direction", alignment == "left" ? TooltipManager.TOOLTIP_DIRECTIONS.RIGHT : TooltipManager.TOOLTIP_DIRECTIONS.LEFT);
+        // Set tooltip direction to always show below the portrait
+        this.element.setAttribute("data-tooltip-direction", TooltipManager.TOOLTIP_DIRECTIONS.DOWN);
 
         this.element.classList.toggle("active", data.css.includes("active"));
         this.element.classList.toggle("visible", data.css.includes("hidden"));
