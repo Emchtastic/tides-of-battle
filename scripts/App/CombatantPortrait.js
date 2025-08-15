@@ -118,8 +118,6 @@ export class CombatantPortrait {
     async _onCombatantMouseDown(event) {
         event.preventDefault();
 
-        if (event.target.dataset.action === "player-pass") return this.combat.nextTurn();
-
         if (!event.target.classList.contains("combatant-wrapper")) return;
 
         if (event.button === 2) return game.user.isGM && this.combatant.sheet.render(true);
@@ -433,7 +431,6 @@ export class CombatantPortrait {
             active: this.combat.turns.indexOf(combatant) === this.combat.turn,
             owner: combatant.isOwner,
             isGM: game.user.isGM,
-            showPass: combatant.isOwner && !game.user.isGM,
             defeated: combatant.isDefeated,
             hidden: combatant.hidden,
             actionTaken: actionTaken,

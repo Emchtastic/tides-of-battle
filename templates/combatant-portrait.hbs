@@ -4,12 +4,6 @@
     <div class="portrait-bar" style="height: calc( 100% - {{portraitResource.percentage}}% );"></div>
     {{/if}}
 
-    <div class="portrait-pass" style="{{#unless showPass}}display: none;{{/unless}}{{#unless owner}}display: none;{{/unless}}">
-        <i data-action="player-pass" class="fa-solid fa-chevrons-right"></i>
-    </div>
-
-
-
     <div class="overlay-ui-container">
     {{#if resource.max}}
         <div class="tracked-attribute-bar-max" style="order: {{barsOrder.bar1}};margin-left: {{barsOrder.bar1ML}};{{#unless showBars}}display: none;{{/unless}}" >
