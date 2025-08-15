@@ -20,7 +20,7 @@
             border-color: rgba(255, 255, 255, 0.616);
 
             & .combatant-buttons {
-                opacity: 0.7;
+                opacity: 1 !important; // Keep fully opaque on hover
             }
         }
 
@@ -260,8 +260,7 @@
             display: flex;
             gap: 0.3rem;
             margin-bottom: 0.3rem;
-            opacity: 0;
-            transition: opacity 0.2s ease-in-out;
+            opacity: 1 !important; // Force always visible, no transition
             pointer-events: all;
 
             & i:hover {
